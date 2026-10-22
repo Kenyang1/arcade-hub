@@ -1,0 +1,11 @@
+# Local development only: MongoDB on localhost:27018.
+# The app itself runs with `dotnet run` and `pnpm dev`, or on Kubernetes.
+services:
+  mongo:
+    image: mongo:8
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+volumes:
+  mongo-data:

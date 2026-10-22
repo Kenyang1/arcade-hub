@@ -1,0 +1,38 @@
+# Secrets and local env
+.env
+.env.k8s
+*.local
+
+# Game and save files never go in git (see CLAUDE.md)
+*.nes
+*.sfc
+*.smc
+*.gb
+*.gbc
+*.gba
+*.zip
+*.state
+games/
+saves/
+
+# EmulatorJS build, fetched by `pnpm --dir web emulator:fetch`
+web/public/emulatorjs/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
