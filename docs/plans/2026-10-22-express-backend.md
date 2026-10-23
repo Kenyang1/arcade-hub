@@ -46,7 +46,7 @@ Rejected:
 - **NestJS or Fastify.** Soham proposed Express, and it's the most familiar choice for all three of us.
 
 ## Steps
-- [ ] **Docs** (Kenyang, this PR): rewrite the stack in `docs/spec.md`,
+- [x] **Docs** (Kenyang, this PR): rewrite the stack in `docs/spec.md`,
       `CLAUDE.md`, `README.md`, the M0 plan, `docs/games.md`, `.env.example`,
       `docker-compose.yml`, `.gitignore` and `.gitattributes`.
 - [ ] **Workspace** (Kenyang, after `feat/web-scaffold` merges): root

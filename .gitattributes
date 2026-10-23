@@ -1,7 +1,6 @@
 # Normalize line endings so Windows and macOS/Linux teammates get clean diffs
 * text=auto eol=lf
 *.ps1 text eol=crlf
-*.sln text eol=crlf
 *.png binary
 *.jpg binary
 *.wasm binary

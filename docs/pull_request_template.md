@@ -8,7 +8,7 @@ docs/plans/YYYY-MM-DD-slug.md (step N), or "Small change, no plan".
 - One bullet per meaningful change, grouped by area.
 
 ## Contract and data model
-Changes to types.ts, api.ts signatures, Contracts/ DTOs, or MongoDB collections. "None" if none.
+Changes to packages/contracts, api.ts signatures, or MongoDB collections. "None" if none.
 
 ## How to test
 Steps a reviewer can follow locally or on the cluster, including the tricky cases.
