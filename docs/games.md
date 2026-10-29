@@ -8,3 +8,5 @@ outside the repo and are loaded with
 | Title | Console / core | Author | License | Link |
 | --- | --- | --- | --- | --- |
 | _Add the first homebrew game during M0_ | nes | | | |
+
+| Bomb Sweeper v0.5 | nes fceumm | Snowbro | Public Domain | https://www.nesworld.com/article.php?system=nes&data=neshomebrew_bestof |
