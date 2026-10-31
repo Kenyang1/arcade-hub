@@ -1,0 +1,9 @@
+# One workspace for the whole repo. `pnpm install` at the root installs every
+# package; run a package's scripts with `pnpm --dir <folder> <script>`.
+packages:
+  - web
+  - api
+  - packages/*
+
+# Only install package versions published at least 14 days ago (in minutes).
+minimumReleaseAge: 20160

@@ -23,12 +23,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# .NET
-bin/
-obj/
-*.user
-.vs/
-TestResults/
+# Tests
+coverage/
 
 # Editors and OS
 .vscode/*

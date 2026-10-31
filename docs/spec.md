@@ -1,12 +1,12 @@
 # Arcade Hub — Project Spec & Milestone Roadmap
 
-Last updated: Oct 21, 2026 · Owner: Kenyang
+Last updated: Oct 30, 2026 · Owner: Kenyang
 
 ## Overview
 
 Three developers ship Arcade Hub in six weeks, from Oct 25, 2026 to Dec 6, 2026. The plan builds one thin working slice first, then adds the Kubernetes-managed game features one layer at a time, so there is always something to demo.
 
-**What we are building:** a React arcade hub backed by an ASP.NET Core REST API and MongoDB, all on Kubernetes. Games run in the player's browser through EmulatorJS (RetroArch's emulator cores, compiled to run in a web page), so there is no streaming lag. The backend manages each play session: it serves the game files, stores every save, takes autosaves, detects idle players and restores progress on any device.
+**What we are building:** a React arcade hub backed by an Express REST API and MongoDB, all on Kubernetes. The web app and the API are both TypeScript and share one set of contract types. Games run in the player's browser through EmulatorJS (RetroArch's emulator cores, compiled to run in a web page), so there is no streaming lag. The backend manages each play session: it serves the game files, stores every save, takes autosaves, detects idle players and restores progress on any device.
 
 **Assumptions** (change these if they are wrong):
 
@@ -23,27 +23,44 @@ Each developer owns one workstream end to end, so nobody waits on anyone else fo
 | Workstream | Owner | Owns | Main folders |
 | --- | --- | --- | --- |
 | Frontend & integration | Kenyang | React hub, catalog and search pages, game player page with EmulatorJS (load game, save, pause, autosave, heartbeat), sign-in screens, demo and presentation, weekly integration check | `web/` |
-| Backend API | Soham | ASP.NET Core API, MongoDB and GridFS, accounts and JWT sign-in, session and save endpoints, Swagger, Postman tests | `api/ArcadeHub.Api`, `api/ArcadeHub.Core` |
-| Infrastructure | Khoi | Dockerfiles, Kubernetes manifests, self-hosting EmulatorJS and game files with the right headers, the CronJobs (idle sweep, autosave pruning, backups), API autoscaling, CI, load and fault tests | `infra/`, `api/ArcadeHub.Jobs`, `.github/` |
+| Backend API | Soham | Express API in TypeScript, MongoDB and GridFS, accounts and JWT sign-in, session and save endpoints, Swagger, Postman tests | `api/` (except `api/src/jobs/`) |
+| Infrastructure | Khoi | Dockerfiles, Kubernetes manifests, self-hosting EmulatorJS and game files with the right headers, the CronJobs (idle sweep, autosave pruning, backups), API autoscaling, CI, load and fault tests | `infra/`, `api/src/jobs/`, `.github/` |
 
 Kenyang also acts as project coordinator: runs the check-ins, keeps the board current and calls the go/no-go decisions.
+
+## Tech stack
+
+Changed Oct 22, 2026: the API moved from ASP.NET Core to Express before any API code existed, as Soham proposed. The decisions and the rejected options are in `docs/plans/2026-10-22-express-backend.md`.
+
+| Part | Choice |
+| --- | --- |
+| Web app | React and TypeScript on Vite, React Router, EmulatorJS served from our own origin |
+| API | Express 5 and TypeScript on Node 22 |
+| Contract | `packages/contracts`: zod schemas for every request and response, with TypeScript types inferred from them. The API validates with the schemas; the web app imports the types |
+| Database | MongoDB 8 through the official `mongodb` driver; game and save files in GridFS (`GridFSBucket`) |
+| Auth | Passwords hashed with `scrypt` from `node:crypto`, a random salt per user; JWT sign-in with `jsonwebtoken` |
+| Errors | ProblemDetails JSON bodies (RFC 9457) with standard status codes |
+| Logs | `pino`, structured JSON |
+| Tests | Vitest and `supertest`; Postman collection run with Newman |
+| Jobs | A CLI in `api/src/jobs/`, run by Kubernetes CronJobs |
+| Repo | One pnpm workspace: `web/`, `api/`, `packages/contracts/` |
 
 ## Contracts between workstreams
 
 Three agreements let everyone build in parallel: the public REST API, the save-state flow between the player page and the API, and the MongoDB data model. Lock all three by Oct 31. After that, any change needs a heads-up to the other two developers.
 
-### Public REST API (React → ASP.NET Core)
+### Public REST API (React → Express)
 
-Owned by Soham, used by Kenyang. Until the real endpoints exist, Kenyang builds against mock data with the same shape.
+Owned by Soham, used by Kenyang. Every request and response body is a zod schema in `packages/contracts`, so both sides compile against the same types. Until the real endpoints exist, Kenyang builds against mock data with the same shape.
 
 | Method | Endpoint | Purpose | Milestone |
 | --- | --- | --- | --- |
 | GET | /api/games?search=&genre= | List or search the catalog | M1 |
 | GET | /api/games/{id} | One game's details | M1 |
-| POST | /api/games | Add a game (details + game file) | M1 |
-| PUT | /api/games/{id} | Edit a game | M1 |
-| DELETE | /api/games/{id} | Remove a game | M1 |
-| GET | /api/games/{id}/file | Download the game file for EmulatorJS | M2 |
+| GET | /api/games/{id}/file | Download the game file for EmulatorJS | M1 |
+| POST | /api/games | Add a game (details + game file) | M2 |
+| PUT | /api/games/{id} | Edit a game | M2 |
+| DELETE | /api/games/{id} | Remove a game | M2 |
 | POST | /api/sessions | Start a game, optionally from a save; returns session ID, game file URL, emulator core and save file URL | M2 |
 | GET | /api/sessions/{id} | Session status | M2 |
 | POST | /api/sessions/{id}/heartbeat | Browser reports "still playing" every 30 s | M2 |
@@ -67,7 +84,7 @@ Owned by Kenyang and Soham together. EmulatorJS produces the save state in the b
 | Player clicks Pause or Resume | Pause or resume EmulatorJS and report it | PATCH /api/sessions/{id} |
 | Tab closes | Try one last autosave, then end the session | POST saves, then DELETE /api/sessions/{id} |
 
-Kubernetes CronJobs (Khoi) run `ArcadeHub.Jobs`. `idle-sweep` runs every minute and marks sessions with no heartbeat for 10 minutes as idle. `prune-autosaves` keeps only the latest five autosaves per player per game.
+Kubernetes CronJobs (Khoi) run the jobs CLI in `api/src/jobs/`. `idle-sweep` runs every minute and marks sessions with no heartbeat for 10 minutes as idle. `prune-autosaves` keeps only the latest five autosaves per player per game.
 
 ### MongoDB data model
 
@@ -82,19 +99,59 @@ Owned by Soham.
 
 ## Milestone roadmap
 
-Seven one-week milestones run back to back from Oct 25. The first playable game is due Nov 15, leaving three weeks for the Kubernetes-managed features and testing.
+Seven one-week milestones run back to back from Oct 25. The first playable game is due Nov 8, at the team demo, leaving four weeks for the Kubernetes-managed features and testing.
+
+Changed Oct 30: M1 became a thin real slice through the whole stack, so the Nov 8 demo plays a real game from the cluster. Adding, editing and deleting games moved to M2. Nothing was cut.
 
 | Milestone | Dates | Decision point |
 | --- | --- | --- |
 | M0 Setup | Oct 25 – Oct 31 | Contracts locked Oct 31 |
-| M1 Catalog slice | Nov 1 – Nov 8 | |
-| M2 First playable game | Nov 9 – Nov 15 | **Save-state check Nov 15** |
+| M1 Thin real slice | Nov 1 – Nov 8 | **Team demo Nov 8** |
+| M2 Catalog management and sessions | Nov 9 – Nov 15 | **Save-state check Nov 15** |
 | M3 Save and resume | Nov 16 – Nov 22 | |
 | M4 Managed play | Nov 23 – Nov 29 (Thanksgiving) | |
 | M5 Hardening | Nov 30 – Dec 3 | **Code freeze Dec 3** |
 | M6 Demo and report | Dec 4 – Dec 6 | **Project complete Dec 6** |
 
-Watch the Nov 15 save-state check most closely: if saves can't travel from EmulatorJS to the API and back, M3 and M4 are at risk.
+Watch the Nov 15 save-state check most closely: if saves can't travel from EmulatorJS to the API and back, M3 and M4 are at risk. The Nov 8 demo already proves the first half: a save state comes out of EmulatorJS and goes back in.
+
+## Team demo, Sunday Nov 8
+
+The M1 exit check, run as a live demo on Integration Sunday. It proves the riskiest parts of the spec early: real game files from MongoDB on the cluster, a game playing in the browser, and a save state coming out of EmulatorJS and going back in. It takes about 10 minutes.
+
+### Demo script
+
+Run it on one laptop with the cluster from `kubectl apply -R -f infra/k8s/`, using `main` with no local changes. A step passes only if it works with no code edits during the demo.
+
+| # | Driver | Do | Pass when |
+| --- | --- | --- | --- |
+| 1 | Khoi | `kubectl -n arcade get pods,pvc` | The web, API and MongoDB pods are Running; the MongoDB PVC is Bound |
+| 2 | Khoi | `pnpm --dir api jobs import-games <folder> --apply` against the cluster's MongoDB | It logs one line with the number of games imported, and a second run imports 0 |
+| 3 | Soham | Open `/swagger`; run `GET /api/games` and `GET /api/games/{id}` | Both return the imported games; an unknown id returns 404 with a ProblemDetails body |
+| 4 | Kenyang | Open the web app through the cluster's web Service | The catalog lists the imported games from the API, not mocks; search narrows the list |
+| 5 | Kenyang | Open a game, click Play | The game runs within 10 s; the browser's Network tab shows EmulatorJS from `/emulatorjs/` and the game file from `/api/games/{id}/file`, all from our origin |
+| 6 | Kenyang | Play with the keyboard only, click Export state, reload the page, click Load state | The game comes back at the same spot. The state stays in the browser for now; uploading it is M2 |
+| 7 | Khoi | `kubectl -n arcade delete pod <mongo pod>`, wait for it to restart, reload the catalog | Every game is still there |
+| 8 | Khoi | Open the latest PR on GitHub | CI is green and required on `main` |
+
+### Before the demo
+
+- **Fri Oct 30 – Sat Oct 31 (M0 ends):** merge the web scaffold and the Express docs. Kenyang sets up the pnpm workspace and adds the first homebrew game to `docs/games.md`. Soham and Kenyang merge the contracts PR (the game schemas at least). Soham merges the API scaffold. Khoi merges CI and `infra/k8s/namespace.yaml`.
+- **Sun Nov 1 (Integration Sunday):** run the M0 exit check. Anything failing becomes Monday's top task.
+- **Mon Nov 2 – Tue Nov 3:** Soham ships `GET /api/games`, `GET /api/games/{id}` and `GET /api/games/{id}/file` from MongoDB and GridFS, with tests. Khoi ships `import-games` and both Dockerfiles. Kenyang ships the `/spike` save-state round trip and records what worked in the M0 plan.
+- **Wed Nov 4 – Thu Nov 5:** Kenyang switches the catalog and details pages to the real API and makes Play load EmulatorJS with the game file. Khoi ships the Deployments, Services, ConfigMap, Secret, the MongoDB StatefulSet with a PVC, and the nginx content types for EmulatorJS. At the Thursday check-in, every demo step has an owner and a date.
+- **Fri Nov 6:** everything merged and running on Khoi's cluster. CI becomes a required check on `main`.
+- **Sat Nov 7:** dry run of the whole script on the demo laptop. Fix only what the script needs.
+- **Sun Nov 8:** the demo.
+
+### If something isn't ready
+
+| If this slips | Demo it this way instead | Owner |
+| --- | --- | --- |
+| The cluster | Run the API and web app on the laptop (`pnpm --dir api dev`, `pnpm --dir web dev`) against `docker compose` MongoDB, and skip steps 1 and 7. The M1 check stays open until the cluster passes | Khoi |
+| The game endpoints | The catalog runs on mocks and step 3 is skipped. Steps 5 and 6 need the file endpoint, so Soham ships it first | Soham |
+| Save-state export | Show the game playing (step 5) and make the blocker Monday's top task: it's the biggest risk in the spec | Kenyang |
+| CI | Run the checks under Commands in `CLAUDE.md` live instead of step 8 | Khoi |
 
 ## Task breakdown
 
@@ -102,10 +159,10 @@ Each row is one milestone of about one week. A milestone is done only when its e
 
 | Milestone | Kenyang (frontend) | Soham (API) | Khoi (infrastructure) | Exit check |
 | --- | --- | --- | --- | --- |
-| M0 Setup, Oct 25–31 | Create repo and project board; commit `CLAUDE.md`, `docs/spec.md`, the plan template and PR template; scaffold React app with `types.ts`, `api.ts` and mocks; run EmulatorJS with one homebrew game in a plain page | Scaffold the .NET solution (Api, Core, Jobs, Tests) with Swagger; write the data model and API contract; local MongoDB in Docker | Set up local Kubernetes for all three; CI workflow; branch protection on `main`; with Kenyang, confirm an EmulatorJS save state exports and loads back | All three run the stack locally; CI passes; a homebrew game plays in the browser; contracts agreed |
-| M1 Catalog slice, Nov 1–8 | Catalog, search, add, edit and delete pages, first on mocks, then switched to the real API | Games CRUD + search on MongoDB; game file upload to GridFS; validation and status codes | Dockerfiles for web and API; Deployments, Services, ConfigMap, Secret, MongoDB StatefulSet with PVC | Add, search, edit and delete a game in the browser against the cluster |
-| M2 First playable game, Nov 9–15 | Player page loads EmulatorJS with the core and game file from the API; heartbeat; Start and End buttons | Session endpoints; game file download; heartbeat tracking | Self-host EmulatorJS and its cores in the cluster with correct content types; autoscaler for the API | Click Play, game runs within 10 s using files from the cluster. **Save-state check Nov 15:** a save uploads to the API and loads back in a fresh tab |
-| M3 Save & resume, Nov 16–22 | Sign-in and register screens; Save button; autosave every 60 s; My Saves list with Resume | Accounts with hashed passwords and JWT; save upload and download through GridFS; start-from-save | Raise upload size limits for save files; test resume across two computers | Save, close the tab, resume on another computer from the same spot |
+| M0 Setup, Oct 25–31 | Create repo and project board; commit `CLAUDE.md`, `docs/spec.md`, the plan template and PR template; scaffold React app with `types.ts`, `api.ts` and mocks; set up the pnpm workspace; run EmulatorJS with one homebrew game in a plain page | Scaffold the Express API in TypeScript with Swagger and a health endpoint; write the data model and the contracts package with Kenyang; local MongoDB in Docker | Set up local Kubernetes for all three; CI workflow; jobs CLI stub; with Kenyang, confirm an EmulatorJS save state exports and loads back | All three run the stack locally; CI passes; a homebrew game plays in the browser; contracts agreed |
+| M1 Thin real slice, Nov 1–8 | Catalog, search and details pages on the real API; Play loads EmulatorJS with the game file from the API; Export state and Load state buttons on the Play page, built from the `/spike` round trip | `GET /api/games`, `GET /api/games/{id}` and `GET /api/games/{id}/file` on MongoDB and GridFS; validation and status codes; tests | `import-games` job; Dockerfiles for web and API; Deployments, Services, ConfigMap, Secret, MongoDB StatefulSet with PVC; nginx content types for EmulatorJS; CI required on `main` | **Team demo Nov 8:** every step of the demo script passes on the cluster |
+| M2 Catalog management and sessions, Nov 9–15 | Add, edit and delete pages; the player page starts a session, sends a heartbeat, and has Start and End buttons; the save state uploads to the API | Games create, update and delete, with game file upload to GridFS; session endpoints; heartbeat tracking | Autoscaler for the API; raise upload size limits | Add, edit and delete a game in the browser against the cluster. **Save-state check Nov 15:** a save uploads to the API and loads back in a fresh tab |
+| M3 Save & resume, Nov 16–22 | Sign-in and register screens; Save button; autosave every 60 s; My Saves list with Resume | Accounts with hashed passwords and JWT; save upload and download through GridFS; start-from-save | Test resume across two computers | Save, close the tab, resume on another computer from the same spot |
 | M4 Managed play, Nov 23–29 (Thanksgiving) | Pause/Resume button; session status badges; last autosave when the tab closes | PATCH pause/resume; the Core methods the jobs call | Idle-sweep and autosave-pruning CronJobs; CPU and memory limits | Close the tab mid-game, lose at most 1 minute; idle session marked idle after 10 min; delete an API pod mid-game and autosaves keep landing |
 | M5 Hardening, Nov 30–Dec 3 | Phone-width pass; UI bug fixes; record backup demo video | Postman collection for every endpoint; fix API bugs | Load test (20 clients), autoscaling 1→3 API replicas, fault tests; MongoDB backup CronJob if time allows | Every demo check in the last section passes. **Code freeze Dec 3** |
 | M6 Demo & report, Dec 4–6 | Lead slides and live demo rehearsal | Write API and data sections of the report | Write infrastructure section; final cluster reset before demo | Everything done by Dec 6 |
@@ -114,10 +171,10 @@ Each row is one milestone of about one week. A milestone is done only when its e
 
 The full rules live in `CLAUDE.md` at the repo root. Read it before your first change. The short version:
 
-- **Repo:** one GitHub repo with `web/`, `api/`, `infra/` and `docs/`. `main` must always build and deploy.
-- **Data contract:** pages get data only from `web/src/lib/api.ts`, which returns mocks until the real endpoint lands. Changing `types.ts`, an `api.ts` signature, or an API DTO is a contract change: its own PR, reviewed by the other side.
+- **Repo:** one GitHub repo and pnpm workspace with `web/`, `api/`, `packages/contracts/`, `infra/` and `docs/`. `main` must always build and deploy.
+- **Data contract:** pages get data only from `web/src/lib/api.ts`, which returns mocks until the real endpoint lands. Changing `packages/contracts`, `types.ts`, or an `api.ts` signature is a contract change: its own PR, reviewed by the other side.
 - **Plans:** any large piece of work (a new feature, screen, endpoint group, job or schema change) starts with a one-to-two-screen plan in `docs/plans/YYYY-MM-DD-slug.md`, committed first on the branch.
-- **Branches and PRs:** branch `type/slug` off `main`, PR back into `main`, one approval from a teammate, CI green. PR titles follow Conventional Commits, e.g. `feat(saves): upload autosaves every 60 s`.
+- **Branches and PRs:** branch `type/slug` off `main`, PR back into `main`, one approval from a teammate, CI green. Kenyang, as team lead, can merge without an approval. PR titles follow Conventional Commits, e.g. `feat(saves): upload autosaves every 60 s`.
 - **Never in git:** game files, save files, secrets and real classmates' account data. Game files are loaded with the `import-games` job from a folder outside the repo.
 - **Board:** GitHub Projects with To do, In progress, In review and Done. Every task in the breakdown is a card with an owner.
 - **Check-ins:** 15 minutes on Monday and Thursday: what you finished, what's next, what's blocking you.
@@ -138,7 +195,7 @@ The two biggest risks are the six-week timeline and getting save states out of E
 | Thanksgiving week slips | M4 check fails Nov 29 | Move autosave pruning to M5; autosave and idle detection stay | Kenyang |
 | Using games we can't legally share | Any commercial game file in the repo | Only freely distributable homebrew games; keep a list with license links in `docs/games.md` | Kenyang |
 
-**If we fall behind, cut in this order:** search filters by genre → edit game (PUT) → MongoDB backup CronJob → pause/resume reporting. Never cut save/resume, autosave or idle detection: they are how Kubernetes manages the game.
+**If we fall behind, cut in this order:** search filters by genre → edit game (PUT, M2) → MongoDB backup CronJob → pause/resume reporting. Never cut save/resume, autosave or idle detection: they are how Kubernetes manages the game.
 
 ## Final demo checklist
 
