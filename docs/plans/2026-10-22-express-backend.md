@@ -4,7 +4,7 @@
 - **Owner:** Kenyang (docs), with Soham on the API and Khoi on jobs and CI
 - **Milestone:** M0 Setup, Oct 25–31 (see docs/spec.md)
 - **Date:** 2026-10-22
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/1
 
 ## Goal
 Before any backend code exists, switch the API from ASP.NET Core to Express
