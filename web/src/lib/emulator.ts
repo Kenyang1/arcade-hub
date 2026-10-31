@@ -68,8 +68,12 @@ export interface StartOptions {
   /** The element the emulator renders into. It must have an id. */
   container: HTMLElement
   core: EmulatorCore
-  /** URL of the game file (api.gameFileUrl). */
+  /** URL of the game file (api.gameFileUrl), or a blob: URL for a file the player picked. */
   gameUrl: string
+  /**
+   * For a blob: URL, EmulatorJS 4.2.3 names the game file from this, so include
+   * the file extension (for example "homebrew.nes"), or the core may not recognise it.
+   */
   gameName?: string
   /** URL of a save state to load as soon as the game starts (api.saveFileUrl). */
   saveStateUrl?: string | null

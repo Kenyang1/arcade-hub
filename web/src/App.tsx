@@ -6,6 +6,7 @@ import MySavesPage from './pages/MySavesPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 import PlayPage from './pages/PlayPage.tsx'
 import SignInPage from './pages/SignInPage.tsx'
+import SpikePage from './pages/SpikePage.tsx'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="play/:gameId" element={<PlayPage />} />
         <Route path="saves" element={<MySavesPage />} />
         <Route path="sign-in" element={<SignInPage />} />
+        <Route path="spike" element={<SpikePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
