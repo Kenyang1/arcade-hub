@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print message
-        run: echo "A push request has been made."
+        run: echo "A pull request has been made."
 
       # Checkout the repo.
       - name: Checkout
@@ -23,32 +23,56 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: Setup pnpm
+      # Install pnpm.
+      - name: Instal pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
       # Install backend (Express) dependencies.
-      - name: Install backend dependencies
-        working-directory: api
-        run: pnpm install --frozen-lockfile
+      #- name: Install backend dependencies
+      #  working-directory: api
+      #  run: pnpm install --frozen-lockfile
       
       # Install frontend (React) dependencies.
-      - name: Install frontend dependencies
-        working-directory: web
+      #- name: Install frontend dependencies
+      #  working-directory: web
+      #  run: pnpm install --frozen-lockfile
+
+      # Install dependencies
+      - name: Install dependencies
+        working-directory: ./
         run: pnpm install --frozen-lockfile
 
       # Run backend test(s)
-      - name: Run backend tests
-        working-directory: api
-        run: pnpm test
+      #- name: Run backend tests
+      #  working-directory: api
+      #  run: pnpm test
 
       # Run frontend test(s)
-      - name: Run frontend tests
-        working-directory: web
-        run: pnpm test
+      #- name: Run frontend tests
+      #  working-directory: web
+      #  run: pnpm test
 
       # Build React app.
-      - name: Build React app
-        working-directory: web
-        run: pnpm build
+      #- name: Build React app
+      #  working-directory: web
+      #  run: pnpm build
+
+      # Build the frontend and backend.
+      - name: Test and build the frontend and backend
+        working-directory: ./
+        run: |
+          pnpm --dir web lint
+          pnpm --dir web typecheck
+          pnpm --dir web build
+          pnpm --dir packages/contracts typecheck
+          pnpm --dir api lint
+          pnpm --dir api typecheck
+          pnpm --dir api test
+          pnpm --dir api build
+          npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
+
+      # Print a confirmation message.
+      - name: Print a confirmation message.
+        run: echo "Success."
