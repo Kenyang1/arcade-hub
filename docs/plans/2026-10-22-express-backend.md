@@ -49,7 +49,7 @@ Rejected:
 - [x] **Docs** (Kenyang, this PR): rewrite the stack in `docs/spec.md`,
       `CLAUDE.md`, `README.md`, the M0 plan, `docs/games.md`, `.env.example`,
       `docker-compose.yml`, `.gitignore` and `.gitattributes`.
-- [ ] **Workspace** (Kenyang, after `feat/web-scaffold` merges): root
+- [x] **Workspace** (Kenyang, after `feat/web-scaffold` merges): root
       `pnpm-workspace.yaml` (`web`, `api`, `packages/*`) and root
       `package.json`; move `web/pnpm-lock.yaml` to the root; update the
       `.NET API` row in the M0 plan's Decisions.
