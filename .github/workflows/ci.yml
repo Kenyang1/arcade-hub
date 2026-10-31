@@ -1,10 +1,45 @@
 name: CI
 
-on: [push]
+on:
+  pull_request:
+    branches: [main]
 
 jobs:
-  print-message:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Print a message
-        run: echo "Hello World! A push has been made."
+      - name: Print message
+        run: echo "A push request has been made."
+
+      # Checkout the repo.
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Install node.js.
+      - name: Install node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            api/package-lock.json
+
+      # Install backend (Express) dependencies.
+      - name: Install backend dependencies
+        working-directory: api
+        run: npm ci
+      
+      # Install frontend (React) dependencies.
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      # Run backend test(s)
+
+      # Run frontend test(s)
+
+      # Build React app.
+      - name: Build React app
+        working-directory: web
+        run: npm run build
