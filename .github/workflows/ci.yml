@@ -20,26 +20,35 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: |
-            web/package-lock.json
-            api/package-lock.json
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       # Install backend (Express) dependencies.
       - name: Install backend dependencies
         working-directory: api
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       
       # Install frontend (React) dependencies.
       - name: Install frontend dependencies
         working-directory: web
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       # Run backend test(s)
+      - name: Run backend tests
+        working-directory: api
+        run: pnpm test
 
       # Run frontend test(s)
+      - name: Run frontend tests
+        working-directory: web
+        run: pnpm test
 
       # Build React app.
       - name: Build React app
         working-directory: web
-        run: npm run build
+        run: pnpm build
