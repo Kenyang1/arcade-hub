@@ -1,0 +1,59 @@
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: idle-sweep
+spec:
+  schedule: "0 0 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: weekly-task
+              image: busybox:latest
+              command:
+                - /bin/sh
+                - -c
+                - echo "Not implemented yet."
+          restartPolicy: OnFailure
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prune-autosaves
+spec:
+  schedule: "0 0 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: daily-task
+              image: busybox:latest
+              command:
+                - /bin/sh
+                - -c
+                - echo "Not implemented yet."
+          restartPolicy: OnFailure
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: import-games
+spec:
+  schedule: "0 0 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: weekly-task
+              image: busybox:latest
+              command:
+                - /bin/sh
+                - -c
+                - echo "Not implemented yet."
+          restartPolicy: OnFailure
