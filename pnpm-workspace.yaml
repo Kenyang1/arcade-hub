@@ -7,3 +7,10 @@ packages:
 
 # Only install package versions published at least 14 days ago (in minutes).
 minimumReleaseAge: 20160
+
+# Platform bindings that were already in the lockfile before the rule above
+# existed. Without this, `pnpm add` refuses to re-resolve them until they turn
+# 14 days old. Remove this list after Nov 10, 2026.
+minimumReleaseAgeExclude:
+  - '@oxlint/binding-*'
+  - '@rolldown/binding-*'
