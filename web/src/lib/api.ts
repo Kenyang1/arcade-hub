@@ -123,6 +123,24 @@ export function gameFileUrl(id: string): string {
   return `${API_BASE}/games/${id}/file`
 }
 
+/**
+ * GET a game file: gameFileUrl(id) in M1, the session's gameFileUrl from M2.
+ * A real call, since game files never live in mocks or in git. The Play page
+ * hands the bytes to EmulatorJS as a blob: URL (see emulator.ts).
+ */
+export async function downloadGameFile(url: string): Promise<Blob> {
+  let response: Response
+  try {
+    response = await fetch(url, { headers: authHeaders() })
+  } catch {
+    throw new ApiError(0, 'Could not reach the server. Check that the API is running.')
+  }
+  if (!response.ok) throw await toApiError(response)
+  const file = await response.blob()
+  if (file.size === 0) throw new ApiError(response.status, 'The game file is empty.')
+  return file
+}
+
 // --- Sessions (M2, M4) -----------------------------------------------------
 
 /** POST /api/sessions. Starts a session, optionally from a save. */
@@ -193,9 +211,7 @@ export function saveFileUrl(id: string): string {
  * body into an ApiError. The functions above switch to this as endpoints land.
  */
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {}
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
+  const headers = authHeaders()
 
   let payload: BodyInit | undefined
   if (body instanceof FormData || body instanceof Blob) {
@@ -209,6 +225,11 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   if (!response.ok) throw await toApiError(response)
   if (response.status === 204) return undefined as T
   return (await response.json()) as T
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 const FALLBACK_MESSAGES: Record<number, string> = {
