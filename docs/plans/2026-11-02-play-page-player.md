@@ -4,7 +4,7 @@
 - **Owner:** Kenyang
 - **Milestone:** M1 Thin real slice (Team demo Nov 8, steps 5 and 6)
 - **Date:** 2026-11-02
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/6
 
 ## Goal
 Clicking Play on a game's details page starts that game in EmulatorJS with the
