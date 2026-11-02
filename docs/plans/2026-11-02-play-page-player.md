@@ -38,16 +38,16 @@ EmulatorJS's own "Network Error" and never tells the page, so the page would
 wait forever.
 
 ## Steps
-- [ ] `api.ts`: add `downloadGameFile(url)`. New function; no existing signature
+- [x] `api.ts`: add `downloadGameFile(url)`. New function; no existing signature
       or contract type changes.
-- [ ] `emulator.ts`: reject `start()` when EmulatorJS fails to start or takes
+- [x] `emulator.ts`: reject `start()` when EmulatorJS fails to start or takes
       over 30 s, turn off its ROM cache, add `focus()`, `isCoreSupported()` and
       `fileExtension()`.
-- [ ] `lib/exportedState.ts`: keep exported states in session storage (from the spike).
-- [ ] `PlayPage.tsx`: start the game, Export state, Load state, keyboard focus
+- [x] `lib/exportedState.ts`: keep exported states in session storage (from the spike).
+- [x] `PlayPage.tsx`: start the game, Export state, Load state, keyboard focus
       back to the game after each button, plain error messages, and a fallback
       to play a `.nes` file from disk when the server can't send the game.
-- [ ] Remove `SpikePage.tsx` and its route.
+- [x] Remove `SpikePage.tsx` and its route.
 
 ## Decisions
 | Decision | Why | Rejected |
@@ -58,6 +58,7 @@ wait forever.
 | Load state resumes the game first if it is paused | The spike found a load sent while paused did not stick | Loading while paused |
 | `saveId` in the URL is ignored until M3, with a note on the page | The save file endpoint lands in M3; asking EmulatorJS for it now would stop the game from starting | Passing `saveFileUrl` now |
 | The Start button stub is gone; the game starts when the page opens | Demo step 5 is "click Play, the game runs". Start and End come back with sessions in M2 | A disabled Start button next to a running game |
+| A new game id mounts a fresh player (`key={gameId}`) | No state leaks from one game to the next, without resetting state inside an effect | Resetting each piece of state when the id changes |
 | If the server can't send the game, the page offers a `.nes` file picker | Lets the page be tested before the file endpoint lands, and is a fallback if it slips before the demo. Nothing leaves the player's computer | No fallback |
 
 ## Out of scope

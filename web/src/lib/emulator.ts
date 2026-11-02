@@ -12,6 +12,8 @@ const DATA_PATH = '/emulatorjs/data/'
 interface EmulatorInstance {
   started: boolean
   paused: boolean
+  /** Set by EmulatorJS when the game or its core fails to download or start. */
+  failedToStart?: boolean
   play: () => void
   pause: () => void
   on: (event: string, handler: () => void) => void
@@ -34,6 +36,7 @@ declare global {
     EJS_language?: string
     EJS_disableAutoLang?: boolean
     EJS_paths?: Record<string, string>
+    EJS_CacheLimit?: number
     EJS_ready?: () => void
     EJS_onGameStart?: () => void
     EJS_emulator?: EmulatorInstance
@@ -53,6 +56,7 @@ const GLOBALS = [
   'EJS_language',
   'EJS_disableAutoLang',
   'EJS_paths',
+  'EJS_CacheLimit',
   'EJS_ready',
   'EJS_onGameStart',
   'EJS_emulator',
@@ -64,11 +68,37 @@ const GLOBALS = [
 const EMPTY_SCRIPT = 'data:text/javascript,'
 const EMPTY_STYLE = 'data:text/css,'
 
+/** How long start() waits for the game to run before it gives up. */
+const START_TIMEOUT_MS = 30_000
+
+/**
+ * The cores `emulator:fetch` downloads (config.emulatorjs.cores in
+ * web/package.json), by system. A core that isn't here would make EmulatorJS
+ * fetch it from its public CDN, which we never do, so start() refuses it.
+ */
+const SUPPORTED_CORES: Partial<Record<EmulatorCore, string>> = { nes: 'fceumm' }
+
+const FILE_EXTENSIONS: Record<EmulatorCore, string> = { nes: 'nes', snes: 'sfc', gb: 'gb', gba: 'gba' }
+
+/** Whether this build can run games for the system. */
+export function isCoreSupported(core: EmulatorCore): boolean {
+  return core in SUPPORTED_CORES
+}
+
+/** The usual game file extension for the system, for StartOptions.gameName. */
+export function fileExtension(core: EmulatorCore): string {
+  return FILE_EXTENSIONS[core]
+}
+
 export interface StartOptions {
   /** The element the emulator renders into. It must have an id. */
   container: HTMLElement
   core: EmulatorCore
-  /** URL of the game file (api.gameFileUrl), or a blob: URL for a file the player picked. */
+  /**
+   * A blob: URL of the game file: the bytes from api.downloadGameFile, or a file
+   * the player picked. A plain API URL works too, but EmulatorJS then names the
+   * file after the URL's last segment ("file"), with no extension.
+   */
   gameUrl: string
   /**
    * For a blob: URL, EmulatorJS 4.2.3 names the game file from this, so include
@@ -80,19 +110,54 @@ export interface StartOptions {
 }
 
 let loaderScript: HTMLScriptElement | null = null
+/** Clears the watchers of the start() call in flight, if any. */
+let cancelStartWatch: (() => void) | null = null
 
 /**
  * Loads EmulatorJS into the container and starts the game. Resolves once the
- * game runs, so a save state can be taken. Rejects when the build is missing
- * or the game fails to start. Only one emulator runs at a time.
+ * game runs, so a save state can be taken. Rejects when the build is missing,
+ * the core isn't one we serve, the game fails to start, or it hasn't started
+ * after 30 s. Only one emulator runs at a time.
  */
 export function start(options: StartOptions): Promise<void> {
   stop()
   if (!options.container.id) {
     return Promise.reject(new Error('The emulator container needs an id.'))
   }
+  if (!isCoreSupported(options.core)) {
+    return Promise.reject(
+      new Error(`${options.core.toUpperCase()} games can't be played here yet. Only NES games run for now.`),
+    )
+  }
 
   return new Promise<void>((resolve, reject) => {
+    // EmulatorJS 4.2.3 reports some failures (a game or core that won't
+    // download, a save state that won't load) only on its own screen, by setting
+    // failedToStart. Poll for it, with a timeout as a last resort, so the page
+    // never waits forever.
+    const poll = window.setInterval(() => {
+      if (window.EJS_emulator?.failedToStart) fail('The game could not start. Check the browser console.')
+    }, 250)
+    const timeout = window.setTimeout(() => {
+      fail('The game did not start within 30 seconds. Check the browser console.')
+    }, START_TIMEOUT_MS)
+    const clearWatch = () => {
+      window.clearInterval(poll)
+      window.clearTimeout(timeout)
+      if (cancelStartWatch === clearWatch) cancelStartWatch = null
+    }
+    cancelStartWatch = clearWatch
+    let settled = false
+    function fail(message: string) {
+      // Ignore a start that already settled, or that stop() or a newer start
+      // cancelled: its stop() would tear down the game that replaced it.
+      if (settled || cancelStartWatch !== clearWatch) return
+      settled = true
+      clearWatch()
+      stop()
+      reject(new Error(message))
+    }
+
     window.EJS_player = `#${options.container.id}`
     window.EJS_core = options.core
     window.EJS_gameUrl = options.gameUrl
@@ -103,24 +168,32 @@ export function start(options: StartOptions): Promise<void> {
     // English only. This also stops the loader from requesting localization/<locale>.json.
     window.EJS_language = 'en-US'
     window.EJS_disableAutoLang = false
+    // No ROM cache. With a blob: URL EmulatorJS would store a new copy of the
+    // game in IndexedDB on every start, under a random key it never reads back.
+    window.EJS_CacheLimit = 0
     if (window.EmulatorJS) {
       window.EJS_paths = { 'emulator.min.js': EMPTY_SCRIPT, 'emulator.min.css': EMPTY_STYLE }
     }
     window.EJS_ready = () => {
-      window.EJS_emulator?.on('exit', () => {
-        reject(new Error('The game could not start. Check the browser console.'))
-      })
+      window.EJS_emulator?.on('exit', () => fail('The game could not start. Check the browser console.'))
     }
-    window.EJS_onGameStart = () => resolve()
+    window.EJS_onGameStart = () => {
+      if (settled) return
+      settled = true
+      clearWatch()
+      resolve()
+    }
 
     loaderScript = document.createElement('script')
     loaderScript.src = `${DATA_PATH}loader.js`
-    loaderScript.onerror = () => {
-      stop()
-      reject(new Error('EmulatorJS is missing. Run: pnpm --dir web emulator:fetch'))
-    }
+    loaderScript.onerror = () => fail('EmulatorJS is missing. Run: pnpm --dir web emulator:fetch')
     document.body.append(loaderScript)
   })
+}
+
+/** Moves keyboard focus to the game, so keys go to it again after a button press. */
+export function focus(): void {
+  if (window.EJS_player) document.querySelector<HTMLElement>(window.EJS_player)?.focus()
 }
 
 export function isRunning(): boolean {
@@ -154,6 +227,7 @@ export function loadSaveState(state: Uint8Array): void {
  * teardown API, so this halts the main loop and removes what it put on the page.
  */
 export function stop(): void {
+  cancelStartWatch?.()
   if (window.EJS_emulator?.started) window.EJS_emulator.gameManager?.toggleMainLoop(0)
   loaderScript?.remove()
   loaderScript = null
