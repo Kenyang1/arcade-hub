@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print message
+        run: echo "A pull request has been made."
+
+      # Checkout the repo.
+      - name: Checkout
+        uses: actions/checkout@v6
+
+        # Install pnpm.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      # Install node.js.
+      - name: Install node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      # Install dependencies
+      - name: Install dependencies
+        working-directory: ./
+        run: pnpm install --frozen-lockfile
+
+      # Build the frontend and backend.
+      - name: Test and build the frontend and backend
+        working-directory: ./
+        run: |
+          pnpm --dir web lint
+          pnpm --dir web typecheck
+          pnpm --dir web build
+          pnpm --dir packages/contracts typecheck
+#          pnpm --dir api lint
+#          pnpm --dir api typecheck
+#          pnpm --dir api test
+#          pnpm --dir api build
+#          npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
+
+      # Print a confirmation message.
+      - name: Print a confirmation message.
+        run: echo "Success."
