@@ -3,6 +3,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: idle-sweep
+  namespace: arcade
 spec:
   schedule: "0 0 * * 0"
   jobTemplate:
@@ -23,6 +24,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: prune-autosaves
+  namespace: arcade
 spec:
   schedule: "0 0 * * 0"
   jobTemplate:
@@ -43,6 +45,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: import-games
+  namespace: arcade
 spec:
   schedule: "0 0 * * 0"
   jobTemplate:
