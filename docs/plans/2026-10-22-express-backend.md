@@ -53,7 +53,7 @@ Rejected:
       `pnpm-workspace.yaml` (`web`, `api`, `packages/*`) and root
       `package.json`; move `web/pnpm-lock.yaml` to the root; update the
       `.NET API` row in the M0 plan's Decisions.
-- [ ] **Contracts** (Soham + Kenyang, contract PR): `packages/contracts/` with
+- [x] **Contracts** (Soham + Kenyang, contract PR): `packages/contracts/` with
       zod schemas for every endpoint in the spec's API table, built from
       today's `web/src/lib/types.ts`; `types.ts` becomes a re-export. Changes
       the contract.
