@@ -1,6 +1,6 @@
 # Play a game on the Play page, with Export state and Load state
 
-- **Status:** in progress
+- **Status:** done
 - **Owner:** Kenyang
 - **Milestone:** M1 Thin real slice (Team demo Nov 8, steps 5 and 6)
 - **Date:** 2026-11-02
