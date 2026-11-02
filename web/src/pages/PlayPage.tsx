@@ -46,6 +46,15 @@ function Player({ gameId }: { gameId: string }) {
     setRunning(false)
     setError(null)
     setStatus(`Starting ${label}…`)
+    const isGame = await emulator.isGameFile(file, core)
+    if (attempt !== startCount.current) return
+    if (!isGame) {
+      emulator.stop()
+      setStatus(null)
+      setError(`${label} isn't a ${core.toUpperCase()} game file, so it can't be played.`)
+      setOfferFile(true)
+      return
+    }
     const gameUrl = URL.createObjectURL(file)
     try {
       // gameName keeps the file extension: for a blob: URL EmulatorJS 4.2.3 names

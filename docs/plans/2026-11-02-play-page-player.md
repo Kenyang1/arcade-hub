@@ -61,6 +61,9 @@ wait forever.
 | A new game id mounts a fresh player (`key={gameId}`) | No state leaks from one game to the next, without resetting state inside an effect | Resetting each piece of state when the id changes |
 | If the server can't send the game, the page offers a `.nes` file picker | Lets the page be tested before the file endpoint lands, and is a fallback if it slips before the demo. Nothing leaves the player's computer | No fallback |
 
+| Tab is stopped before EmulatorJS sees it, and the game area gets `tabindex="0"` | Browser testing found EmulatorJS calls `preventDefault` on every key in its game area, so Tab could never leave the game and keyboard users couldn't reach Export or Load. CLAUDE.md requires the player page to work with only a keyboard | Moving focus away from the game after each button (keys would stop reaching the game) |
+| Check the file's header before starting (`NES` + 0x1A) | Browser testing found EmulatorJS doesn't report a file its core rejects: it fires its start event and shows the RetroArch menu, so the page said "Playing". A damaged game with a good header still gets through | Detecting the RetroArch menu after the start |
+
 ## Out of scope
 Sessions, heartbeat, autosave, uploading saves (M2 and M3), pause and resume
 buttons (M4), cores other than `fceumm`.
@@ -74,4 +77,7 @@ buttons (M4), cores other than `fceumm`.
 - Without the API: the page says the game couldn't be loaded and offers the file
   picker; picking a `.nes` file plays it and Export/Load work the same way.
 - A GB game (mock "Pixel Racer") says its console isn't supported yet.
+- Keyboard only: Tab leaves the game and reaches Export state and Load state, and
+  Tab or Shift+Tab gets back to the game.
+- A `.nes` file that isn't a NES game gets a plain message, not "Playing".
 - `/spike` shows the Not found page.

@@ -80,6 +80,9 @@ const SUPPORTED_CORES: Partial<Record<EmulatorCore, string>> = { nes: 'fceumm' }
 
 const FILE_EXTENSIONS: Record<EmulatorCore, string> = { nes: 'nes', snes: 'sfc', gb: 'gb', gba: 'gba' }
 
+/** The bytes a game file starts with, for the systems we can run: "NES" and 0x1A (iNES). */
+const FILE_HEADERS: Partial<Record<EmulatorCore, number[]>> = { nes: [0x4e, 0x45, 0x53, 0x1a] }
+
 /** Whether this build can run games for the system. */
 export function isCoreSupported(core: EmulatorCore): boolean {
   return core in SUPPORTED_CORES
@@ -88,6 +91,19 @@ export function isCoreSupported(core: EmulatorCore): boolean {
 /** The usual game file extension for the system, for StartOptions.gameName. */
 export function fileExtension(core: EmulatorCore): string {
   return FILE_EXTENSIONS[core]
+}
+
+/**
+ * Whether the file starts like a game for this system. EmulatorJS 4.2.3 reports
+ * no failure for a file its core rejects: it shows the RetroArch menu and fires
+ * its start event, so this is checked before start(). A damaged game with a good
+ * header still gets through.
+ */
+export async function isGameFile(file: Blob, core: EmulatorCore): Promise<boolean> {
+  const header = FILE_HEADERS[core]
+  if (!header) return true
+  const bytes = new Uint8Array(await file.slice(0, header.length).arrayBuffer())
+  return header.every((byte, index) => bytes[index] === byte)
 }
 
 export interface StartOptions {
@@ -112,6 +128,25 @@ export interface StartOptions {
 let loaderScript: HTMLScriptElement | null = null
 /** Clears the watchers of the start() call in flight, if any. */
 let cancelStartWatch: (() => void) | null = null
+/** Removes the Tab listeners of the running game, if any. */
+let releaseTab: (() => void) | null = null
+
+/**
+ * EmulatorJS 4.2.3 calls preventDefault on every key that reaches its game area,
+ * so Tab could never leave the game. Stop Tab before EmulatorJS sees it, and the
+ * browser moves focus as usual. No NES button is mapped to Tab.
+ */
+function letTabLeaveTheGame(container: HTMLElement): () => void {
+  const passTab = (event: KeyboardEvent) => {
+    if (event.key === 'Tab') event.stopImmediatePropagation()
+  }
+  container.addEventListener('keydown', passTab, true)
+  container.addEventListener('keyup', passTab, true)
+  return () => {
+    container.removeEventListener('keydown', passTab, true)
+    container.removeEventListener('keyup', passTab, true)
+  }
+}
 
 /**
  * Loads EmulatorJS into the container and starts the game. Resolves once the
@@ -158,6 +193,7 @@ export function start(options: StartOptions): Promise<void> {
       reject(new Error(message))
     }
 
+    releaseTab = letTabLeaveTheGame(options.container)
     window.EJS_player = `#${options.container.id}`
     window.EJS_core = options.core
     window.EJS_gameUrl = options.gameUrl
@@ -181,6 +217,8 @@ export function start(options: StartOptions): Promise<void> {
       if (settled) return
       settled = true
       clearWatch()
+      // EmulatorJS sets tabindex -1, which would leave no way to Tab back to the game.
+      options.container.tabIndex = 0
       resolve()
     }
 
@@ -228,6 +266,8 @@ export function loadSaveState(state: Uint8Array): void {
  */
 export function stop(): void {
   cancelStartWatch?.()
+  releaseTab?.()
+  releaseTab = null
   if (window.EJS_emulator?.started) window.EJS_emulator.gameManager?.toggleMainLoop(0)
   loaderScript?.remove()
   loaderScript = null
