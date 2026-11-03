@@ -1,0 +1,17 @@
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    include: ['test/**/*.test.ts'],
+    // Tests need a real MongoDB (`docker compose up -d mongo`) and use their own
+    // database, so a run never touches the development one. These variables are
+    // set before any module reads process.env (see src/config.ts).
+    env: {
+      NODE_ENV: 'test',
+      MONGO_DB: 'arcadehub_test',
+    },
+    testTimeout: 20000,
+    hookTimeout: 20000,
+  },
+})
