@@ -1,25 +1,36 @@
+#
+# Stage 1: Build the webapp
+#
+
 FROM node:22-alpine AS build
 
-WORKDIR /web
+WORKDIR /app
 
-# Copy package files
-COPY ../../web/package.json ../../web/pnpm-lock.yaml ./
-
-# Install pnpm
+# Enable Corepack.
 RUN corepack enable
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Copy workspace config.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy the remaining React project files
-COPY ../../web/ .
+# Copy webapp config.
+COPY web/package.json ./web/
+
+# Install dependencies, including devDependencies
+RUN pnpm install --frozen-lockfile --prod=false
+
+# Copy the webapp's source code
+COPY web/ ./web/
 
 # Build React application
-RUN pnpm build
+RUN pnpm --dir web build
+
+#
+# Stage 2: Run the webapp
+#
 
 # Production stage
-FROM nginx:alpine
+#FROM nginx:alpine
 
-COPY --from=build /web/dist /usr/share/nginx/html
+#COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+#EXPOSE 80

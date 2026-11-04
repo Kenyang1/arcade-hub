@@ -5,16 +5,16 @@ FROM node:22-alpine
 WORKDIR /api
 
 # 3. Copy package.json and package-lock.json
-COPY ../../api/package*.json ./
+#COPY ../../api/package*.json ./
 
 # 4. Install dependencies
-RUN npm install
+#RUN pnpm install --frozen-lockfile
 
 # 5. Copy the remaining project files
-COPY . .
+#COPY ../../api/ .
 
 # 6. Expose the application port
-EXPOSE 3000
+#EXPOSE 3000
 
 # 7. Start the application
-CMD ["npm", "start"]
+#CMD ["npm", "start"]
