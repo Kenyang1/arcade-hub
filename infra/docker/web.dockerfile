@@ -4,7 +4,7 @@
 
 FROM node:22-alpine AS build
 
-WORKDIR /app
+WORKDIR /arcade-hub
 
 # Enable Corepack.
 RUN corepack enable
@@ -12,14 +12,16 @@ RUN corepack enable
 # Copy workspace config.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy webapp config.
-COPY web/package.json ./web/
+# Copy webapp and web API config.
+COPY web/package.json ./web/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
 
-# Install dependencies, including devDependencies
-RUN pnpm install --frozen-lockfile --prod=false
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
 # Copy the webapp's source code
 COPY web/ ./web/
+COPY packages/contracts/ ./packages/contracts/
 
 # Build React application
 RUN pnpm --dir web build
