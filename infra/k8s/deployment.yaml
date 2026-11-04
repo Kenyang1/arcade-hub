@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: arcade-hub-web-deployment
+  namespace: arcade
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: arcade-web
+
+  template:
+    metadata:
+      labels:
+        app: arcade-web
+
+    spec:
+      containers:
+        - name: arcade-web
+          image: arcade-web:dev
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 80
+              name: http
+
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"

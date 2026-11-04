@@ -30,9 +30,10 @@ RUN pnpm --dir web build
 # Stage 2: Run the webapp
 #
 
-# Production stage
-#FROM nginx:alpine
+FROM nginx:alpine AS production
 
-#COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /arcade-hub/web/dist /usr/share/nginx/html
 
-#EXPOSE 80
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
