@@ -33,7 +33,7 @@ RUN pnpm --dir web build
 # Stage 2: Run the webapp
 #
 
-FROM nginx:alpine:1.29 AS production
+FROM nginx:1.29-alpine AS production
 
 # Remove default Nginx configuration
 RUN rm /etc/nginx/conf.d/default.conf
