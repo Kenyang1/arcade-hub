@@ -27,6 +27,10 @@ spec:
             - containerPort: 80
               name: http
 
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            periodSeconds: 5
+
           resources:
             requests:
               memory: "64Mi"
