@@ -12,6 +12,12 @@ node_modules
 .env.*
 **/.env
 **/.env.*
+.env.k8s
+
+# Ignore the games and save files
+games/
+saves/
+*.nes
 
 # Ignore the emulatorjs folder so every image gets the same fresh copy.
 web/public/emulatorjs
