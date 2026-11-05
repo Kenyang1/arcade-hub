@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts'],
+    // Every file shares one database, and each one wipes the collections it
+    // uses, so files must not run at the same time.
+    fileParallelism: false,
     // Tests need a real MongoDB (`docker compose up -d mongo`) and use their own
     // database, so a run never touches the development one. These variables are
     // set before any module reads process.env (see src/config.ts).
