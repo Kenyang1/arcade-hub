@@ -61,4 +61,6 @@ COPY --from=build /arcade-hub/api/dist ./api/dist
 
 EXPOSE 5080
 
+USER node
+
 CMD ["node", "api/dist/server.js"]
