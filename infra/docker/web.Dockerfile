@@ -32,8 +32,16 @@ RUN pnpm --dir web build
 
 FROM nginx:alpine AS production
 
+# Remove default Nginx configuration
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy custom Nginx configuration
+COPY infra/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy React production build
 COPY --from=build /arcade-hub/web/dist /usr/share/nginx/html
 
+# Expose HTTP port
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
