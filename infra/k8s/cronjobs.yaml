@@ -5,14 +5,15 @@ metadata:
   name: idle-sweep
   namespace: arcade
 spec:
-  schedule: "*/10 * * * *"
+  suspend: true # Will be removed once the jobs CLI exits.
+  schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-            - name: weekly-task
+            - name: idle-sweep
               image: busybox:latest
               command:
                 - /bin/sh
@@ -34,6 +35,7 @@ metadata:
   name: prune-autosaves
   namespace: arcade
 spec:
+  suspend: true # Will be removed once the jobs CLI exits.
   schedule: "0 0 * * 0"
   concurrencyPolicy: Forbid
   jobTemplate:
@@ -41,7 +43,37 @@ spec:
       template:
         spec:
           containers:
-            - name: daily-task
+            - name: prune-autosaves
+              image: busybox:latest
+              command:
+                - /bin/sh
+                - -c
+                - echo "Not implemented yet."
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "1"
+          restartPolicy: OnFailure
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: import-games
+  namespace: arcade
+spec:
+  suspend: true # This cronjob must be executed manually
+  schedule: "0 0 1 1 *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: import-games
               image: busybox:latest
               command:
                 - /bin/sh
