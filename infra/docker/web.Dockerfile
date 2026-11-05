@@ -23,6 +23,9 @@ RUN pnpm install --frozen-lockfile
 COPY web/ ./web/
 COPY packages/contracts/ ./packages/contracts/
 
+# Download the pinned EmulatorJS build into web/public/emulatorjs
+RUN pnpm --dir web emulator:fetch
+
 # Build React application
 RUN pnpm --dir web build
 
@@ -30,7 +33,7 @@ RUN pnpm --dir web build
 # Stage 2: Run the webapp
 #
 
-FROM nginx:alpine AS production
+FROM nginx:alpine:1.29 AS production
 
 # Remove default Nginx configuration
 RUN rm /etc/nginx/conf.d/default.conf

@@ -12,3 +12,6 @@ node_modules
 .env.*
 **/.env
 **/.env.*
+
+# Ignore the emulatorjs folder so every image gets the same fresh copy.
+web/public/emulatorjs
