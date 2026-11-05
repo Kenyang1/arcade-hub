@@ -71,6 +71,9 @@ Owned by Soham, used by Kenyang. Every request and response body is a zod schema
 | GET | /api/saves/{id}/file | Download a save state to resume | M3 |
 | PATCH | /api/sessions/{id} | Pause or resume | M4 |
 
+Reading the catalog, including `GET /api/games/{id}/file`, needs no sign-in.
+Every other endpoint checks that the caller is signed in (see `CLAUDE.md`, "Auth").
+
 ### Save-state flow (player page → API)
 
 Owned by Kenyang and Soham together. EmulatorJS produces the save state in the browser; the player page sends it to the API so the backend owns every save.
@@ -96,6 +99,10 @@ Owned by Soham.
 | users | id, username, passwordHash, createdAt |
 | sessions | id, userId, gameId, status (running / paused / idle / ended), lastHeartbeatAt, lastAutosaveId |
 | saves | id, userId, gameId, stateFileId (GridFS), kind (manual / autosave), createdAt |
+
+Game files live in the GridFS bucket `gameFiles`, one file per game, and
+`games.romFileId` is that file's `_id`. `import-games` writes the document and
+the file together.
 
 ## Milestone roadmap
 
