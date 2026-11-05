@@ -1,20 +1,64 @@
 # 1. Use Node.js as the base image
-FROM node:22-alpine
+FROM node:22-alpine AS build
 
 # 2. Set the working directory
-WORKDIR /api
+WORKDIR /arcade-hub
 
-# 3. Copy package.json and package-lock.json
-#COPY ../../api/package*.json ./
+# Enable Corepack.
+RUN corepack enable
 
-# 4. Install dependencies
-#RUN pnpm install --frozen-lockfile
+# Copy workspace config.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# 5. Copy the remaining project files
-#COPY ../../api/ .
+# Copy web API and contract package files..
+COPY api/package.json ./api/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
 
-# 6. Expose the application port
-#EXPOSE 3000
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
-# 7. Start the application
-#CMD ["npm", "start"]
+# Copy the web API's source code
+COPY api/ ./api/
+COPY packages/contracts/ ./packages/contracts/
+
+# Build the web API
+RUN pnpm --dir api build
+
+#
+# Stage 2: Production dependencies
+#
+
+FROM node:22-alpine AS production-dependencies
+
+WORKDIR /arcade-hub
+
+RUN corepack enable
+
+# Copy workspace config.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy web API and contract package files..
+COPY api/package.json ./api/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
+
+RUN pnpm install --prod --frozen-lockfile
+
+#
+# Stage 3: Run the web API
+#
+
+FROM nginx:alpine AS production
+
+WORKDIR /arcade-hub
+
+ENV NODE_ENV=production
+
+COPY --from=production-dependencies /arcade-hub/node_modules ./node_modules
+COPY --from=production-dependencies /arcade-hub/api/node_modules ./api/node_modules
+
+COPY --from=build /arcade-hub/api/package.json ./api/package.json
+COPY --from=build /arcade-hub/api/dist ./api/dist
+
+EXPOSE 5080
+
+CMD ["node", "api/dist/index.js"]
