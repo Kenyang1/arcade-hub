@@ -55,3 +55,32 @@ spec:
                   memory: "512Mi"
                   cpu: "1"
           restartPolicy: OnFailure
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: import-games
+  namespace: arcade
+spec:
+  schedule: "0 0 31 2 0"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: import-games
+              image: busybox:latest
+              command:
+                - /bin/sh
+                - -c
+                - echo "Not implemented yet."
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "1"
+          restartPolicy: OnFailure
