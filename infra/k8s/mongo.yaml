@@ -52,9 +52,19 @@ spec:
             - containerPort: 27017
               name: mongo
 
+          # Allows MongoDB up to 150 seconds to initialize.
+          startupProbe:
+            tcpSocket:
+              port: mongo
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 30
+
           readinessProbe:
             tcpSocket: { port: mongo }
             periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
 
           volumeMounts:
             - name: data
