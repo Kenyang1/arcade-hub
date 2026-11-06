@@ -6,7 +6,7 @@
 import { build } from 'esbuild'
 
 await build({
-  entryPoints: ['src/server.ts'],
+  entryPoints: ['src/server.ts', 'src/jobs/cli.ts'],
   outdir: 'dist',
   outbase: 'src',
   bundle: true,
