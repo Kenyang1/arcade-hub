@@ -44,6 +44,13 @@ jobs:
         working-directory: ./
         run: pnpm install --frozen-lockfile
 
+      # Verify MongoDB connection.
+      - name: Verify MongoDB Connection
+        run: |
+          # The service is now accessible on localhost:27018 from the runner host context
+          echo "Testing connection to MongoDB on port 27018..."
+          nc -zv localhost 27018
+
       # Build the frontend and backend.
       - name: Test and build the frontend and backend
         working-directory: ./
