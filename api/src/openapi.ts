@@ -76,6 +76,24 @@ export const openApiDocument = {
         },
       },
     },
+    '/api/games/{id}/file': {
+      get: {
+        summary: 'Download the game file EmulatorJS plays',
+        description:
+          'Streams the game file from GridFS. Public, like the rest of the catalog.',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: {
+            description: 'The game file.',
+            content: {
+              'application/octet-stream': { schema: { type: 'string', format: 'binary' } },
+            },
+          },
+          404: problemResponse,
+          503: problemResponse,
+        },
+      },
+    },
   },
   components: {
     schemas: { Game: game, ProblemDetails: problemDetails },

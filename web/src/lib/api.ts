@@ -82,19 +82,24 @@ export async function login(credentials: Credentials): Promise<AuthResponse> {
 
 /** GET /api/games?search=&genre= */
 export async function listGames(query: GameQuery = {}): Promise<Game[]> {
-  const search = query.search?.trim().toLowerCase()
-  return mockGames.filter(
-    (game) =>
-      (!search || game.title.toLowerCase().includes(search)) &&
-      (!query.genre || game.genre === query.genre),
-  )
+  const params = new URLSearchParams()
+  const search = query.search?.trim()
+  if (search) params.set('search', search)
+  if (query.genre) params.set('genre', query.genre)
+  const queryString = params.toString()
+  return request<Game[]>('GET', queryString ? `/games?${queryString}` : '/games')
 }
 
 /** GET /api/games/{id} */
 export async function getGame(id: string): Promise<Game> {
-  const game = mockGames.find((candidate) => candidate.id === id)
-  if (!game) throw new ApiError(404, 'That game does not exist.')
-  return game
+  try {
+    return await request<Game>('GET', `/games/${encodeURIComponent(id)}`)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      throw new ApiError(404, 'That game does not exist.', error.problem)
+    }
+    throw error
+  }
 }
 
 /** POST /api/games. The game file goes along as multipart form data. */
@@ -129,12 +134,7 @@ export function gameFileUrl(id: string): string {
  * hands the bytes to EmulatorJS as a blob: URL (see emulator.ts).
  */
 export async function downloadGameFile(url: string): Promise<Blob> {
-  let response: Response
-  try {
-    response = await fetch(url, { headers: authHeaders() })
-  } catch {
-    throw new ApiError(0, 'Could not reach the server. Check that the API is running.')
-  }
+  const response = await send(url, { headers: authHeaders() })
   if (!response.ok) throw await toApiError(response)
   const file = await response.blob()
   if (file.size === 0) throw new ApiError(response.status, 'The game file is empty.')
@@ -221,10 +221,19 @@ export async function request<T>(method: string, path: string, body?: unknown): 
     payload = JSON.stringify(body)
   }
 
-  const response = await fetch(`${API_BASE}${path}`, { method, headers, body: payload })
+  const response = await send(`${API_BASE}${path}`, { method, headers, body: payload })
   if (!response.ok) throw await toApiError(response)
   if (response.status === 204) return undefined as T
   return (await response.json()) as T
+}
+
+/** fetch, with a plain message when the server can't be reached at all. */
+async function send(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch {
+    throw new ApiError(0, 'Could not reach the server. Check that the API is running.')
+  }
 }
 
 function authHeaders(): Record<string, string> {

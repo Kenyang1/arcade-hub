@@ -12,7 +12,9 @@ export default function CatalogPage() {
     let cancelled = false
     listGames({ search })
       .then((result) => {
-        if (!cancelled) setGames(result)
+        if (cancelled) return
+        setGames(result)
+        setError(null)
       })
       .catch((reason: unknown) => {
         if (!cancelled) setError(errorMessage(reason))
