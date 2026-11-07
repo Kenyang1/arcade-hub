@@ -12,7 +12,8 @@
     "build": "tsc --noEmit && node scripts/build.mjs",
     "lint": "oxlint --deny-warnings",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "jobs": "tsx src/jobs/cli.ts"
   },
   "dependencies": {
     "@arcade-hub/contracts": "workspace:*",
