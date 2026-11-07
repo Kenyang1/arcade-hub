@@ -36,7 +36,8 @@ Three people work here:
 - **Kenyang and Soham** own `packages/contracts/` together. Every change there
   needs both.
 - **Khoi** owns `infra/`, `api/src/jobs/`, and `.github/`: Docker,
-  Kubernetes, the CronJobs, CI, and load and fault tests.
+  Kubernetes, the CronJobs, CI, and load and fault tests. The jobs' code is in
+  `api/src/jobs/`; their Kubernetes manifests are in `infra/k8s/`.
 
 Work outside your folders goes through a PR reviewed by the owner.
 
@@ -55,8 +56,14 @@ pnpm --dir web emulator:fetch        # downloads the pinned EmulatorJS build int
 pnpm --dir api dev                   # http://localhost:5080, Swagger at /swagger; reloads on save
 pnpm --dir web dev                   # http://localhost:5173, proxies /api to :5080
 
-# Load games (dry run by default; the folder lives outside the repo)
+# Load games: put the game files and a games.json you write (format in
+# docs/games.md) in one folder outside the repo. Dry run by default.
 pnpm --dir api jobs import-games <folder> [--apply]
+
+# Point the API or a job at another MongoDB, for example the cluster's after
+# `kubectl -n arcade port-forward svc/mongo 27019:27017` in another terminal.
+# Lasts for this terminal only. In PowerShell, `set MONGO_URL=...` does nothing.
+export MONGO_URL=mongodb://localhost:27019          # PowerShell: $env:MONGO_URL = "mongodb://localhost:27019"
 
 # Run a job once, locally
 pnpm --dir api jobs idle-sweep
@@ -93,13 +100,13 @@ api/                        Express + TypeScript (Soham)
   src/server.ts             Starts the app on :5080
   src/routes/               One router per resource (games, sessions, saves, auth)
   src/core/                 MongoDB access, GridFS, session and save rules
-  src/jobs/                 CLI for the CronJobs and imports (Khoi)
+  src/jobs/                 The jobs CLI: import-games and the CronJobs' code (Khoi)
   test/                     Vitest + supertest tests for core rules and endpoints
 packages/
   contracts/                THE contract: zod schemas and types for every request and response (Kenyang + Soham)
 infra/
   docker/                   Dockerfiles for web (nginx) and api
-  k8s/                      Kubernetes manifests, namespace `arcade` (Khoi)
+  k8s/                      Kubernetes manifests, namespace `arcade`, incl. cronjobs.yaml (Khoi)
 tests/                      Postman collection and environments
 docs/
   spec.md                   The build spec
@@ -225,9 +232,11 @@ unit-tested, and match `docs/spec.md`.
 - Every Deployment and CronJob sets CPU and memory requests and limits.
 - The API autoscaler needs metrics-server. Docker Desktop and kind don't ship
   it, so install it once per cluster (see `infra/k8s/README.md`).
-- CronJobs run the jobs CLI (`node dist/jobs/cli.js <command>` in the API
-  image) with `concurrencyPolicy: Forbid`, so two runs of
-  the same job never overlap.
+- The CronJobs are defined in `infra/k8s/cronjobs.yaml`. They run the jobs CLI
+  from `api/src/jobs/` (`node dist/jobs/cli.js <command>` in the API image)
+  with `concurrencyPolicy: Forbid`, so two runs of the same job never overlap.
+- `import-games` isn't a CronJob: run it by hand against the cluster's MongoDB
+  through a port-forward (see `docs/games.md`).
 
 ## Logging
 

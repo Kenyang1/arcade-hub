@@ -7,6 +7,18 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27018:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
       - name: Print message
         run: echo "A pull request has been made."
@@ -32,6 +44,13 @@ jobs:
         working-directory: ./
         run: pnpm install --frozen-lockfile
 
+      # Verify MongoDB connection.
+      - name: Verify MongoDB Connection
+        run: |
+          # The service is now accessible on localhost:27018 from the runner host context
+          echo "Testing connection to MongoDB on port 27018..."
+          nc -zv localhost 27018
+
       # Build the frontend and backend.
       - name: Test and build the frontend and backend
         working-directory: ./
@@ -40,10 +59,10 @@ jobs:
           pnpm --dir web typecheck
           pnpm --dir web build
           pnpm --dir packages/contracts typecheck
-#          pnpm --dir api lint
-#          pnpm --dir api typecheck
-#          pnpm --dir api test
-#          pnpm --dir api build
+          pnpm --dir api lint
+          pnpm --dir api typecheck
+          pnpm --dir api test
+          pnpm --dir api build
 #          npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
 
       # Print a confirmation message.
