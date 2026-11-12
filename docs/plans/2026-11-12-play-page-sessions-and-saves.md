@@ -43,11 +43,11 @@ Rejected: keeping the mocks until Soham merges. The mocks can't carry a save to
 a fresh tab, so the check could only be tried after both PRs land.
 
 ## Steps
-- [ ] `api.ts`: real `startSession`, `heartbeat`, `endSession`, `uploadSave`; new
+- [x] `api.ts`: real `startSession`, `heartbeat`, `endSession`, `uploadSave`; new
   `downloadSaveFile`. **Contract:** the multipart field names for `uploadSave`.
-- [ ] `PlayPage.tsx`: start a session, heartbeat every 30 s, End button, end the
+- [x] `PlayPage.tsx`: start a session, heartbeat every 30 s, End button, end the
   session on leave.
-- [ ] `PlayPage.tsx`: Save button uploads a manual save and offers "Resume in a
+- [x] `PlayPage.tsx`: Save button uploads a manual save and offers "Resume in a
   new tab"; `?saveId=` resumes from that save.
 - [ ] Remove Export state and Load state once the Nov 15 check passes (follow-up).
 
