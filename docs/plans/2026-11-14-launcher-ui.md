@@ -4,7 +4,7 @@
 - **Owner:** Kenyang
 - **Milestone:** M2 (UI polish ahead of the M5 phone-width pass)
 - **Date:** 2026-11-14
-- **PR:** not opened yet
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/21
 
 ## Goal
 
