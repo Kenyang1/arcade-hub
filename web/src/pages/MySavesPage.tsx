@@ -60,7 +60,12 @@ export default function MySavesPage() {
                 <td>
                   <span className="badge">{save.kind}</span>
                 </td>
-                <td>{new Date(save.createdAt).toLocaleString()}</td>
+                <td>
+                  {save.label && <div>{save.label}</div>}
+                  <span className={save.label ? 'muted' : undefined}>
+                    {new Date(save.createdAt).toLocaleString()}
+                  </span>
+                </td>
                 <td>
                   <Link to={`/play/${save.gameId}?saveId=${save.id}`}>Resume</Link>
                 </td>
