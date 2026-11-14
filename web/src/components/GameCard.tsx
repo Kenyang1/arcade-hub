@@ -1,19 +1,62 @@
 import { Link } from 'react-router'
 import type { Game } from '../lib/types.ts'
+import GameCover from './GameCover.tsx'
 
-export default function GameCard({ game }: { game: Game }) {
-  return (
-    <li className="card">
-      <h2>
-        <Link to={`/games/${game.id}`}>{game.title}</Link>
-      </h2>
-      <p className="muted">
-        {game.genre} · {game.core.toUpperCase()}
-      </p>
-      <p>{game.description}</p>
-      <Link to={`/play/${game.id}`} className="button primary">
-        Play
+interface Props {
+  game: Game
+  /** featured: the big card leading Recent games. tall: a cover card. row: list view. */
+  variant: 'featured' | 'tall' | 'row'
+  /** A short line under the title, such as "Last played 2 h ago". */
+  meta?: string
+  /** Called when the card gets focus or the pointer, so the page can follow it. */
+  onSelect?: (game: Game) => void
+}
+
+/** A game in the launcher. Opens the game's page. Arrow keys move between cards (data-card). */
+export default function GameCard({ game, variant, meta, onSelect }: Props) {
+  const select = () => onSelect?.(game)
+  const shared = {
+    to: `/games/${game.id}`,
+    'data-card': '',
+    onFocus: select,
+    onMouseEnter: select,
+  }
+
+  if (variant === 'row') {
+    return (
+      <Link {...shared} className="game-row">
+        <GameCover game={game} size="thumb" showTitle={false} />
+        <span className="game-row-text">
+          <span className="game-row-title">{game.title}</span>
+          <span className="game-row-meta">
+            {game.genre} · {game.core.toUpperCase()}
+            {meta ? ` · ${meta}` : ''}
+          </span>
+          <span className="game-row-description">{game.description}</span>
+        </span>
+        <span className="game-row-go" aria-hidden="true">
+          ›
+        </span>
       </Link>
-    </li>
+    )
+  }
+
+  if (variant === 'featured') {
+    return (
+      <Link {...shared} className="game-card game-card-featured">
+        <GameCover game={game} size="wide" showTitle={false} />
+        <span className="featured-text">
+          <span className="featured-title">{game.title}</span>
+          {meta && <span className="featured-meta">{meta}</span>}
+        </span>
+      </Link>
+    )
+  }
+
+  return (
+    <Link {...shared} className="game-card game-card-tall">
+      <GameCover game={game} size="tall" />
+      {meta && <span className="card-meta">{meta}</span>}
+    </Link>
   )
 }

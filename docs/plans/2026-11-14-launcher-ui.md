@@ -1,6 +1,6 @@
 # Restyle the web app as a game-launcher library
 
-- **Status:** in progress
+- **Status:** in progress (implemented, awaiting review)
 - **Owner:** Kenyang
 - **Milestone:** M2 (UI polish ahead of the M5 phone-width pass)
 - **Date:** 2026-11-14
@@ -56,12 +56,12 @@ contract change for styling isn't worth it now.
 
 ## Steps
 
-- [ ] Tokens, base styles, light/dark themes in `web/src/index.css`.
-- [ ] Shell: `Layout.tsx` top bar and `HintBar.tsx`; `GameCover.tsx` generated covers.
-- [ ] Catalog page: hero, Recent games row, Full library grid/list, sort, shortcuts (`CatalogPage.tsx`, `GameCard.tsx`).
-- [ ] Game details, My Saves, Sign-in and Not found pages in the new style.
-- [ ] Play page: class names and wrapper markup only (no logic change).
-- [ ] Lint, typecheck, build; check desktop and 400 px in both themes with mock data.
+- [x] Tokens, base styles, light/dark themes in `web/src/index.css`.
+- [x] Shell: `Layout.tsx` top bar and `HintBar.tsx`; `GameCover.tsx` generated covers.
+- [x] Catalog page: hero, Recent games row, Full library grid/list, sort, shortcuts (`CatalogPage.tsx`, `GameCard.tsx`).
+- [x] Game details, My Saves, Sign-in and Not found pages in the new style.
+- [x] Play page: class names and wrapper markup only (no logic change).
+- [x] Lint, typecheck, build; check desktop and 400 px in both themes with mock data.
 
 No step changes `packages/contracts`, an `api.ts` signature or the data model.
 
@@ -92,3 +92,12 @@ With mock data: open `/`, `/games/g1`, `/saves`, `/sign-in`, `/play/g1` at
 desktop width and 400 px, in light and dark. Tab through every card and button
 and check the focus ring; press `/`, `S`, `V`, arrows and Enter on the catalog.
 Moves forward the M5 phone-width pass.
+
+## Notes from building it
+
+- The Play page needed no change at all: `Layout.tsx` adds `main-play` to
+  `<main>` on `/play/*`, and the styles hang off that class, so PR 16 merges
+  cleanly.
+- "Add a game" is a disabled button until the M2 add page exists.
+- The launcher column uses `minmax(0, 1fr)`, otherwise the recent row widened
+  the page at 400 px.
