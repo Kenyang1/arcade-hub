@@ -79,8 +79,8 @@ captured during a session the caller owns.
   `SaveSchema`, and add `GuideRequest`/`GuideResponse`. Own PR. **Contract and
   data-model change.** (`packages/contracts/src/index.ts`)
 - [x] **Frame capture (M3).** `captureFrame(): Promise<Blob>` in
-  `emulator.ts`. (`web/src/lib/emulator.ts`) Done, using EmulatorJS's own
-  `takeScreenshot`. Not yet called by any page; the save-labels step does that.
+  `emulator.ts`. (`web/src/lib/emulator.ts`) Done, using
+  `gameManager.screenshot()` with a 5 s timeout. Not yet called by any page; the save-labels step does that.
 - [ ] **Save labels (M4).** The save upload sends a frame. The API labels it
   and stores the label on the save document. My Saves shows it. Mocks
   first. **`api.ts` signature change** (`uploadSave` takes the frame).
@@ -111,7 +111,8 @@ captured during a session the caller owns.
 | A failed AI call never fails a save | Saves are the core feature. AI is an extra | Blocking the save until the label is ready |
 | Provider: **Gemini API, free tier** (key from Google AI Studio, no billing attached) | Free, takes image input, and its limits are enough for development and the demo. Google may use free-tier inputs to improve its products, so we send game frames and readme text only, never usernames, account data or save files | Claude (no free tier, about $0.008 a call, needs credits); a self-hosted model with Ollama (free, but slow on our laptops) |
 | The key is `GEMINI_API_KEY`, read only by `api/src/core/ai.ts` | Keeps it out of the browser and out of git: local `.env`, `.env.example` with a fake value, and the `arcade-secrets` Secret on the cluster | A key in `web/` or a ConfigMap |
-| Frames are sent at the console's native size, not upscaled (Nov 14) | EmulatorJS's `takeScreenshot('retroarch', 'png', 0)` gives the core's own 256x240 frame with no extra library. Its upscale option scales the page's display canvas, which can be very large. We upscale only if the accuracy check says we must | Upscaling on the API with an image library |
+| Frames are sent at the console's native size, not upscaled (Nov 14) | EmulatorJS's `gameManager.screenshot()` gives the core's own 256x240 PNG with no extra library. We upscale only if the accuracy check says we must | Upscaling on the API with an image library |
+| `captureFrame()` calls `gameManager.screenshot()`, not `takeScreenshot()` (Nov 14) | In EmulatorJS 4.2.3, `takeScreenshot` reads `upscale \|\| default`, so 0 (native size) becomes 1, and its retroarch path never calls back for 1: the promise hangs. `gameManager.screenshot()` also waits with no limit, so `captureFrame()` gives up after 5 s | `takeScreenshot('retroarch', 'png', 0)` |
 | `GEMINI_MODEL` defaults to `gemini-flash-latest` (Nov 14) | It's the alias the Gemini SDK's own examples use. Google renames models often, so the research step picks the real model and sets it in `.env` | Hard-coding a dated model name |
 | A low-confidence answer comes back as `label: null` (Nov 14) | Below 0.5 the save shows its time, which is better than a wrong label | Showing every label |
 | A rate-limit or quota error is treated like any other AI failure | The free tier has per-minute and per-day limits; the save still works and shows its time | Retrying until the call succeeds |
