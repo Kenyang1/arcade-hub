@@ -8,6 +8,7 @@ const TITLES: Record<number, string> = {
   403: 'Forbidden',
   404: 'Not found',
   409: 'Conflict',
+  413: 'Payload too large',
   500: 'Server error',
   503: 'Service unavailable',
 }
@@ -61,6 +62,18 @@ export const notFound: RequestHandler = (_req, res) => {
   problem(res, 404, 'That page does not exist.')
 }
 
+/**
+ * A multipart problem (multer): an oversized or malformed upload is the
+ * request's fault, so it is a 400 like any other invalid input.
+ */
+function uploadDetail(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null) return null
+  if ((error as { name?: unknown }).name !== 'MulterError') return null
+  return (error as { code?: unknown }).code === 'LIMIT_FILE_SIZE'
+    ? 'The uploaded file is too large.'
+    : 'The upload could not be read.'
+}
+
 export const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   if (res.headersSent) {
     next(error)
@@ -68,6 +81,11 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, next) => {
   }
   if (error instanceof HttpError) {
     problem(res, error.status, error.message, error.errors)
+    return
+  }
+  const rejectedUpload = uploadDetail(error)
+  if (rejectedUpload) {
+    problem(res, 400, rejectedUpload)
     return
   }
   logger.error({ err: error }, 'unhandled error')

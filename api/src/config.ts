@@ -14,4 +14,12 @@ export const config = {
   mongoDb: process.env.MONGO_DB ?? 'arcadehub',
   /** How long the driver waits for a reachable server before giving up. */
   mongoTimeoutMs: 3000,
+  /** Sign-in (M3): the key bearer tokens are signed with, and the issuer they must carry. */
+  jwtSigningKey: process.env.JWT_SIGNING_KEY ?? '',
+  jwtIssuer: process.env.JWT_ISSUER ?? 'arcade-hub',
+  /** SEED_DEV_USERS: create dev-player and dev-player2 on startup, in development only. */
+  seedDevUsers: process.env.SEED_DEV_USERS === 'true',
+  seedDevPassword: process.env.SEED_DEV_PASSWORD ?? 'dev-password-123',
+  /** Largest save state accepted, in bytes. EmulatorJS states are far smaller than game files. */
+  maxSaveStateBytes: 10 * 1024 * 1024,
 }

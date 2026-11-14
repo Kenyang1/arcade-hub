@@ -1,6 +1,8 @@
 import { type Db, MongoClient } from 'mongodb'
 import { config } from '../config.ts'
+import { HttpError } from '../http/problem.ts'
 import { logger } from '../logger.ts'
+import { ensureIndexes } from './indexes.ts'
 
 let client: MongoClient | undefined
 let db: Db | undefined
@@ -20,6 +22,9 @@ export function connectMongo(
     await nextClient.connect()
     const nextDb = nextClient.db(dbName)
     await nextDb.command({ ping: 1 })
+    // Before any request sees the database, so nothing races the unique index
+    // on users.username (see core/indexes.ts).
+    await ensureIndexes(nextDb)
     client = nextClient
     db = nextDb
     return nextDb
@@ -27,6 +32,19 @@ export function connectMongo(
     connecting = undefined
   })
   return connecting
+}
+
+/**
+ * The database a route needs, or a 503 when MongoDB is not reachable: a missing
+ * database is a temporary condition, not a bug in the request.
+ */
+export async function database(): Promise<Db> {
+  try {
+    return await connectMongo()
+  } catch (error) {
+    logger.warn({ err: error }, 'mongo is not reachable')
+    throw new HttpError(503, 'The database is not reachable. Please try again in a moment.')
+  }
 }
 
 /** True once a connection has been made. */

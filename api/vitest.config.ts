@@ -13,6 +13,8 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
       MONGO_DB: 'arcadehub_test',
+      JWT_SIGNING_KEY: 'test-signing-key-not-a-secret',
+      JWT_ISSUER: 'arcade-hub',
     },
     testTimeout: 20000,
     hookTimeout: 20000,

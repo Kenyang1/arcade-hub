@@ -89,6 +89,15 @@ Owned by Kenyang and Soham together. EmulatorJS produces the save state in the b
 
 Kubernetes CronJobs (Khoi) run the jobs CLI in `api/src/jobs/`. `idle-sweep` runs every minute and marks sessions with no heartbeat for 10 minutes as idle. `prune-autosaves` keeps only the latest five autosaves per player per game.
 
+A save upload is multipart form data: a `kind` field (`manual` or `autosave`)
+and the state itself as a file part named `state`. The response is the `saves`
+document, not the file; the file downloads from `GET /api/saves/{id}/file`.
+Until sign-in lands in M3, the API treats a request that carries no token as one
+stand-in account (`dev-player`) outside production, and answers 401 in
+production. Requests that do carry a token are checked against
+`JWT_SIGNING_KEY`, and a session or save is only visible to the account that
+owns it (403 otherwise).
+
 ### MongoDB data model
 
 Owned by Soham.
@@ -103,6 +112,11 @@ Owned by Soham.
 Game files live in the GridFS bucket `gameFiles`, one file per game, and
 `games.romFileId` is that file's `_id`. `import-games` writes the document and
 the file together.
+
+`users.username` carries a unique index, created once when the API connects
+(it's what stops two parallel requests from creating the same account twice). A
+database that already holds duplicate usernames has them merged into the oldest
+account on the next connection, with its sessions and saves moved over.
 
 ## Milestone roadmap
 
