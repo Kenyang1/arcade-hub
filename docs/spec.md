@@ -113,6 +113,11 @@ Game files live in the GridFS bucket `gameFiles`, one file per game, and
 `games.romFileId` is that file's `_id`. `import-games` writes the document and
 the file together.
 
+`users.username` carries a unique index, created once when the API connects
+(it's what stops two parallel requests from creating the same account twice). A
+database that already holds duplicate usernames has them merged into the oldest
+account on the next connection, with its sessions and saves moved over.
+
 ## Milestone roadmap
 
 Seven one-week milestones run back to back from Oct 25. The first playable game is due Nov 8, at the team demo, leaving four weeks for the Kubernetes-managed features and testing.

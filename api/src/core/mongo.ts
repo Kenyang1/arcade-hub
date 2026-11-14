@@ -2,6 +2,7 @@ import { type Db, MongoClient } from 'mongodb'
 import { config } from '../config.ts'
 import { HttpError } from '../http/problem.ts'
 import { logger } from '../logger.ts'
+import { ensureIndexes } from './indexes.ts'
 
 let client: MongoClient | undefined
 let db: Db | undefined
@@ -21,6 +22,9 @@ export function connectMongo(
     await nextClient.connect()
     const nextDb = nextClient.db(dbName)
     await nextDb.command({ ping: 1 })
+    // Before any request sees the database, so nothing races the unique index
+    // on users.username (see core/indexes.ts).
+    await ensureIndexes(nextDb)
     client = nextClient
     db = nextDb
     return nextDb
