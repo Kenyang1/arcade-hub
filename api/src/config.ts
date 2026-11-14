@@ -14,4 +14,10 @@ export const config = {
   mongoDb: process.env.MONGO_DB ?? 'arcadehub',
   /** How long the driver waits for a reachable server before giving up. */
   mongoTimeoutMs: 3000,
+  /** Gemini API key from Google AI Studio (free tier). Empty turns the AI features off. */
+  geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+  /** The Gemini model that reads game frames. Pick one in AI Studio that takes images. */
+  geminiModel: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
+  /** How long one AI call may take before it counts as failed. */
+  aiTimeoutMs: 10000,
 }

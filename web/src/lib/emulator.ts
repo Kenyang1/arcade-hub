@@ -17,6 +17,15 @@ interface EmulatorInstance {
   play: () => void
   pause: () => void
   on: (event: string, handler: () => void) => void
+  /**
+   * EmulatorJS 4.2.3: screenshot of the game. Source "retroarch" reads the core's
+   * own frame; upscale 0 keeps its native size (256x240 for the NES).
+   */
+  takeScreenshot?: (
+    source: 'retroarch' | 'canvas',
+    format: 'png',
+    upscale: number,
+  ) => Promise<{ blob: Blob; format: string }>
   gameManager?: {
     getState: () => Uint8Array
     loadState: (state: Uint8Array) => void
@@ -253,6 +262,18 @@ export function resume(): void {
 /** The current save state as bytes, ready to upload. */
 export function getSaveState(): Uint8Array {
   return gameManager().getState()
+}
+
+/**
+ * The current game frame as a PNG, at the console's native size, for the AI
+ * features (docs/plans/2026-11-10-ai-integration.md). The core draws it, so it
+ * has none of the page's scaling or overlays.
+ */
+export async function captureFrame(): Promise<Blob> {
+  const emulator = instance()
+  if (!emulator.takeScreenshot) throw new Error('This EmulatorJS build cannot take screenshots.')
+  const { blob } = await emulator.takeScreenshot('retroarch', 'png', 0)
+  return blob.type === 'image/png' ? blob : new Blob([blob], { type: 'image/png' })
 }
 
 /** Loads a save state taken earlier with getSaveState, or downloaded from the API. */

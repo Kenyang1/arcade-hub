@@ -13,6 +13,8 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
       MONGO_DB: 'arcadehub_test',
+      // Tests never call a real AI provider (see test/ai.test.ts).
+      GEMINI_API_KEY: '',
     },
     testTimeout: 20000,
     hookTimeout: 20000,
