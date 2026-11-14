@@ -1,10 +1,10 @@
 # Add AI to Arcade Hub: save labels, a game guide, and a score reader
 
-- **Status:** draft
+- **Status:** in progress
 - **Owner:** Kenyang (Soham reviews `api/` and the contract; Khoi adds the key to the Kubernetes Secret)
 - **Milestone:** M3 to M5 from docs/spec.md (research during M2)
 - **Date:** 2026-11-10
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/20
 
 ## Goal
 Our professor asked us to add AI to Arcade Hub. When this is done, a player
@@ -36,8 +36,8 @@ Use one pipeline for all three features:
 
 1. `emulator.ts` captures the current frame from the EmulatorJS canvas as a PNG.
 2. `api.ts` sends it to the API, tied to a session the API issued.
-3. A new module, `api/src/core/ai.ts`, upscales the frame (NES frames are
-   256x240), calls the vision model, and asks for structured output.
+3. A new module, `api/src/core/ai.ts`, sends the frame (256x240 for the NES)
+   to the vision model and asks for structured output.
 4. A zod schema in `packages/contracts` validates the answer before anything
    uses it.
 
@@ -67,16 +67,20 @@ captured during a session the caller owns.
   and current free-tier limits here. Test 5 hand-labelled Bomb Sweeper frames
   in the AI Studio playground and record how many it read correctly. No code.
   (no files)
-- [ ] **Proof of concept (M3).** `api/src/core/ai.ts` with one function that
+- [x] **Proof of concept (M3).** `api/src/core/ai.ts` with one function that
   returns `{ label, confidence }` for a PNG, using Google's Gemini SDK, plus a
   script that runs it on the test frames. Add `GEMINI_API_KEY` with a fake
   value to `.env.example`. (`api/src/core/ai.ts`, `api/package.json`,
-  `.env.example`)
+  `.env.example`) Done: `labelFrame()` in `ai.ts`, unit tests in
+  `api/test/ai.test.ts`, and `pnpm --dir api ai:label <folder>` in
+  `api/scripts/label-frames.ts`. Not yet run against the real API: that needs
+  the key from the research step.
 - [ ] **Contract change (M3), with Soham.** Add an optional `label` to
   `SaveSchema`, and add `GuideRequest`/`GuideResponse`. Own PR. **Contract and
   data-model change.** (`packages/contracts/src/index.ts`)
-- [ ] **Frame capture (M3).** `captureFrame(): Promise<Blob>` in
-  `emulator.ts`. (`web/src/lib/emulator.ts`)
+- [x] **Frame capture (M3).** `captureFrame(): Promise<Blob>` in
+  `emulator.ts`. (`web/src/lib/emulator.ts`) Done, using
+  `gameManager.screenshot()` with a 5 s timeout. Not yet called by any page; the save-labels step does that.
 - [ ] **Save labels (M4).** The save upload sends a frame. The API labels it
   and stores the label on the save document. My Saves shows it. Mocks
   first. **`api.ts` signature change** (`uploadSave` takes the frame).
@@ -107,6 +111,10 @@ captured during a session the caller owns.
 | A failed AI call never fails a save | Saves are the core feature. AI is an extra | Blocking the save until the label is ready |
 | Provider: **Gemini API, free tier** (key from Google AI Studio, no billing attached) | Free, takes image input, and its limits are enough for development and the demo. Google may use free-tier inputs to improve its products, so we send game frames and readme text only, never usernames, account data or save files | Claude (no free tier, about $0.008 a call, needs credits); a self-hosted model with Ollama (free, but slow on our laptops) |
 | The key is `GEMINI_API_KEY`, read only by `api/src/core/ai.ts` | Keeps it out of the browser and out of git: local `.env`, `.env.example` with a fake value, and the `arcade-secrets` Secret on the cluster | A key in `web/` or a ConfigMap |
+| Frames are sent at the console's native size, not upscaled (Nov 14) | EmulatorJS's `gameManager.screenshot()` gives the core's own 256x240 PNG with no extra library. We upscale only if the accuracy check says we must | Upscaling on the API with an image library |
+| `captureFrame()` calls `gameManager.screenshot()`, not `takeScreenshot()` (Nov 14) | In EmulatorJS 4.2.3, `takeScreenshot` reads `upscale \|\| default`, so 0 (native size) becomes 1, and its retroarch path never calls back for 1: the promise hangs. `gameManager.screenshot()` also waits with no limit, so `captureFrame()` gives up after 5 s | `takeScreenshot('retroarch', 'png', 0)` |
+| `GEMINI_MODEL` defaults to `gemini-flash-latest` (Nov 14) | It's the alias the Gemini SDK's own examples use. Google renames models often, so the research step picks the real model and sets it in `.env` | Hard-coding a dated model name |
+| A low-confidence answer comes back as `label: null` (Nov 14) | Below 0.5 the save shows its time, which is better than a wrong label | Showing every label |
 | A rate-limit or quota error is treated like any other AI failure | The free tier has per-minute and per-day limits; the save still works and shows its time | Retrying until the call succeeds |
 
 ## Out of scope
