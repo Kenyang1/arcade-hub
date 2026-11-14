@@ -89,6 +89,20 @@ export async function findOwnedSession(
 }
 
 /**
+ * A save lands only on a session that is still being played. An idle or ended
+ * session takes none: the player page starts a new session, resuming from a
+ * save, instead of reviving the old one (see docs/spec.md).
+ */
+export function assertAcceptsSaves(session: SessionDocument): void {
+  if (session.status === 'ended') {
+    throw new HttpError(409, 'That session has ended, so it cannot take saves. Start a new game.')
+  }
+  if (session.status === 'idle') {
+    throw new HttpError(409, 'That session went idle, so it cannot take saves. Start a new game.')
+  }
+}
+
+/**
  * POST /api/sessions/{id}/heartbeat: the player page is still on the game.
  * Only core changes a session's status, so this records the heartbeat and
  * leaves the status alone.
@@ -152,12 +166,17 @@ export async function updateSessionStatus(
   }
   if (session.status === status) return toSession(session)
 
-  await db
+  const { matchedCount } = await db
     .collection<SessionDocument>(SESSIONS_COLLECTION)
     .updateOne(
       { _id: session._id, status: { $in: ['running', 'paused'] } },
       { $set: { status } },
     )
+  if (matchedCount === 0) {
+    // The status moved between the read and the write (the idle sweep, or
+    // another tab). Reporting the requested status here would be a lie.
+    throw new HttpError(409, 'That session changed a moment ago. Check its status and try again.')
+  }
   return toSession({ ...session, status })
 }
 

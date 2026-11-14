@@ -68,9 +68,11 @@ export function userIdFromToken(token: string): string {
 /**
  * The player behind a request: the subject of its bearer token.
  *
- * Sign-in is M3, so a server outside production with no token plays as one
- * stand-in account instead of rejecting every request; that is how the Nov 15
- * save-state check runs before accounts exist. Production always answers 401.
+ * Sign-in is M3, so a server with ALLOW_STAND_IN_USER set plays a request with
+ * no token as one stand-in account instead of rejecting it; that is how the
+ * Nov 15 save-state check runs on the cluster before accounts exist. The flag is
+ * off by default, so a deployment that forgets it answers 401, not someone
+ * else's saves.
  */
 export async function currentUser(db: Db, authorization: string | undefined): Promise<ObjectId> {
   if (authorization) {
@@ -80,7 +82,7 @@ export async function currentUser(db: Db, authorization: string | undefined): Pr
     if (!ObjectId.isValid(id)) throw new HttpError(401, 'Please sign in first.')
     return new ObjectId(id)
   }
-  if (config.nodeEnv === 'production') throw new HttpError(401, 'Please sign in first.')
+  if (!config.allowStandInUser) throw new HttpError(401, 'Please sign in first.')
   return standInUser(db)
 }
 
@@ -109,9 +111,13 @@ async function findOrCreateUser(db: Db, username: string, password: string): Pro
   }
 }
 
-/** The stand-in account non-production requests share until M3. */
+/**
+ * The stand-in account requests without a token share until M3. Its password is
+ * random and discarded: nothing signs in as it, and by the time sign-in exists
+ * this account is gone with ALLOW_STAND_IN_USER.
+ */
 function standInUser(db: Db): Promise<ObjectId> {
-  return findOrCreateUser(db, DEV_USERNAME, config.seedDevPassword)
+  return findOrCreateUser(db, DEV_USERNAME, randomBytes(32).toString('hex'))
 }
 
 /**
@@ -120,6 +126,10 @@ function standInUser(db: Db): Promise<ObjectId> {
  */
 export async function seedDevUsers(db: Db): Promise<void> {
   if (!config.seedDevUsers || config.nodeEnv !== 'development') return
+  if (!config.seedDevPassword) {
+    logger.warn('SEED_DEV_USERS is set but SEED_DEV_PASSWORD is empty: not seeding development users')
+    return
+  }
   await findOrCreateUser(db, DEV_USERNAME, config.seedDevPassword)
   await findOrCreateUser(db, 'dev-player2', config.seedDevPassword)
   logger.info({ users: 2 }, 'seeded development users')

@@ -89,14 +89,21 @@ Owned by Kenyang and Soham together. EmulatorJS produces the save state in the b
 
 Kubernetes CronJobs (Khoi) run the jobs CLI in `api/src/jobs/`. `idle-sweep` runs every minute and marks sessions with no heartbeat for 10 minutes as idle. `prune-autosaves` keeps only the latest five autosaves per player per game.
 
+A session takes heartbeats, status changes and saves only while it is `running`
+or `paused`. Once it is `idle` or `ended` the API answers 409 to all three, so
+the player page starts a new session that resumes from a save instead of
+reviving the old one.
+
 A save upload is multipart form data: a `kind` field (`manual` or `autosave`)
 and the state itself as a file part named `state`. The response is the `saves`
 document, not the file; the file downloads from `GET /api/saves/{id}/file`.
-Until sign-in lands in M3, the API treats a request that carries no token as one
-stand-in account (`dev-player`) outside production, and answers 401 in
-production. Requests that do carry a token are checked against
+Until sign-in lands in M3, a deployment can let a request that carries no token
+play as one stand-in account (`dev-player`). That is `ALLOW_STAND_IN_USER=true`,
+off by default, and the API Deployment sets it until accounts exist; without it
+the answer is 401. Requests that do carry a token are checked against
 `JWT_SIGNING_KEY`, and a session or save is only visible to the account that
-owns it (403 otherwise).
+owns it (403 otherwise). The caller is resolved before the body is read, so an
+unauthenticated upload is a 401 rather than 10 MB in memory.
 
 ### MongoDB data model
 

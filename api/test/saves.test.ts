@@ -177,6 +177,34 @@ describe('POST /api/sessions/{id}/saves', () => {
     expect(response.body).toMatchObject({ status: 409 })
   })
 
+  it('refuses an idle session with 409, like a heartbeat', async () => {
+    const session = await startSession(player, 'idle')
+
+    const response = await request(app)
+      .post(`/api/sessions/${session._id.toHexString()}/saves`)
+      .field('kind', 'autosave')
+      .attach('state', state, 'state.bin')
+      .expect(409)
+
+    expect(response.body).toMatchObject({ status: 409 })
+    expect(response.body.detail).toContain('Start a new game')
+  })
+
+  it('checks the caller before it reads the upload', async () => {
+    const session = await startSession()
+
+    // Two file parts would be a 400 from the parser if it ran before auth.
+    const response = await request(app)
+      .post(`/api/sessions/${session._id.toHexString()}/saves`)
+      .set('Authorization', 'Bearer not-a-real-token')
+      .field('kind', 'manual')
+      .attach('state', state, 'state.bin')
+      .attach('state', state, 'state.bin')
+      .expect(401)
+
+    expect(response.body).toMatchObject({ status: 401, detail: 'Please sign in first.' })
+  })
+
   it("refuses another player's session", async () => {
     const session = await startSession(otherPlayer)
 

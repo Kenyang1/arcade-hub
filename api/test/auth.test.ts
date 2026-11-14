@@ -6,6 +6,7 @@ import {
   USERS_COLLECTION,
   type UserDocument,
 } from '../src/core/auth.ts'
+import { config } from '../src/config.ts'
 import { ensureIndexes } from '../src/core/indexes.ts'
 import { closeMongo, connectMongo } from '../src/core/mongo.ts'
 import { SAVES_COLLECTION, type SaveDocument } from '../src/core/saves.ts'
@@ -13,7 +14,8 @@ import { SESSIONS_COLLECTION, type SessionDocument } from '../src/core/sessions.
 
 // Needs a real MongoDB (docker compose up -d mongo). vitest.config.ts points the
 // app at the arcadehub_test database, which is wiped before each test.
-// Sign-in lands in M3, so requests with no token play as the stand-in account.
+// Sign-in lands in M3, so a token-free request plays as the stand-in account
+// when ALLOW_STAND_IN_USER is on, which vitest.config.ts sets as the cluster does.
 
 let db: Db
 
@@ -37,6 +39,25 @@ afterAll(closeMongo)
 function user(id: ObjectId, createdAt: string): UserDocument {
   return { _id: id, username: DEV_USERNAME, passwordHash: 'salt:hash', createdAt: new Date(createdAt) }
 }
+
+describe('the stand-in account', () => {
+  it('is refused with 401 when ALLOW_STAND_IN_USER is off', async () => {
+    // The deployment switch, not NODE_ENV: the API image always runs in production.
+    const allowed = config.allowStandInUser
+    config.allowStandInUser = false
+    try {
+      await expect(currentUser(db, undefined)).rejects.toMatchObject({
+        status: 401,
+        message: 'Please sign in first.',
+      })
+    } finally {
+      config.allowStandInUser = allowed
+    }
+
+    // No user was created on the way to that 401.
+    expect(await db.collection(USERS_COLLECTION).countDocuments()).toBe(0)
+  })
+})
 
 describe('the unique index on users.username', () => {
   it('exists once the API is connected', async () => {

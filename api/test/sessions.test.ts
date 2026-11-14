@@ -147,17 +147,28 @@ describe('POST /api/sessions', () => {
     expect(response.body).toMatchObject({ status: 400, detail: 'That save belongs to a different game.' })
   })
 
-  it('ignores a token-free request only outside production', async () => {
-    // In tests (NODE_ENV=test) the stand-in account plays; production would be a 401.
+  it('plays a token-free request as the stand-in account when it is allowed', async () => {
+    // ALLOW_STAND_IN_USER is on in tests, as it is on the cluster until M3.
     const response = await request(app).post('/api/sessions').send({ gameId: game._id.toHexString() })
     expect(response.status).toBe(201)
 
-    const withoutBody = await request(app)
+    const badToken = await request(app)
       .post('/api/sessions')
       .set('Authorization', 'Bearer not-a-real-token')
       .send({ gameId: game._id.toHexString() })
       .expect(401)
-    expect(withoutBody.body).toMatchObject({ status: 401, detail: 'Please sign in first.' })
+    expect(badToken.body).toMatchObject({ status: 401, detail: 'Please sign in first.' })
+  })
+
+  it('checks the caller before it looks at the body', async () => {
+    // A bad token with an invalid body is a 401, not a 400: auth runs first.
+    const response = await request(app)
+      .post('/api/sessions')
+      .set('Authorization', 'Bearer not-a-real-token')
+      .send({ gameId: 'not-an-id' })
+      .expect(401)
+
+    expect(response.body).toMatchObject({ status: 401, detail: 'Please sign in first.' })
   })
 })
 
