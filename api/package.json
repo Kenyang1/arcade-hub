@@ -13,10 +13,12 @@
     "lint": "oxlint --deny-warnings",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "jobs": "tsx src/jobs/cli.ts"
+    "jobs": "tsx src/jobs/cli.ts",
+    "ai:label": "tsx scripts/label-frames.ts"
   },
   "dependencies": {
     "@arcade-hub/contracts": "workspace:*",
+    "@google/genai": "^2.32.0",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.7.0",

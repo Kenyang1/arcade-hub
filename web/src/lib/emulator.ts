@@ -21,6 +21,12 @@ interface EmulatorInstance {
     getState: () => Uint8Array
     loadState: (state: Uint8Array) => void
     toggleMainLoop: (playing: 0 | 1) => void
+    /**
+     * Asks RetroArch for a screenshot and resolves with the PNG bytes of the
+     * core's own frame, at native size (256x240 for the NES). EmulatorJS 4.2.3
+     * polls for the file with no time limit, so callers add their own.
+     */
+    screenshot: () => Promise<Uint8Array>
   }
 }
 
@@ -70,6 +76,9 @@ const EMPTY_STYLE = 'data:text/css,'
 
 /** How long start() waits for the game to run before it gives up. */
 const START_TIMEOUT_MS = 30_000
+
+/** How long captureFrame() waits for the core's screenshot before it gives up. */
+const CAPTURE_TIMEOUT_MS = 5_000
 
 /**
  * The cores `emulator:fetch` downloads (config.emulatorjs.cores in
@@ -253,6 +262,34 @@ export function resume(): void {
 /** The current save state as bytes, ready to upload. */
 export function getSaveState(): Uint8Array {
   return gameManager().getState()
+}
+
+/**
+ * The current game frame as a PNG, at the console's native size, for the AI
+ * features (docs/plans/2026-11-10-ai-integration.md). The core draws it, so it
+ * has none of the page's scaling or overlays. Rejects after 5 s, for example
+ * when the core never writes the screenshot.
+ *
+ * This calls gameManager.screenshot() directly, not EmulatorJS's
+ * takeScreenshot(). In 4.2.3, takeScreenshot reads `upscale || default`, so an
+ * upscale of 0 (native size) becomes the default 1, and with 1 its "retroarch"
+ * path never calls back: the promise would never settle.
+ */
+export async function captureFrame(): Promise<Blob> {
+  const manager = gameManager()
+  let timer: number | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = window.setTimeout(
+      () => reject(new Error('The game screen could not be captured.')),
+      CAPTURE_TIMEOUT_MS,
+    )
+  })
+  try {
+    const png = await Promise.race([manager.screenshot(), timeout])
+    return new Blob([new Uint8Array(png)], { type: 'image/png' })
+  } finally {
+    window.clearTimeout(timer)
+  }
 }
 
 /** Loads a save state taken earlier with getSaveState, or downloaded from the API. */

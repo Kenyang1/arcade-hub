@@ -15,6 +15,8 @@ export default defineConfig({
       MONGO_DB: 'arcadehub_test',
       JWT_SIGNING_KEY: 'test-signing-key-not-a-secret',
       JWT_ISSUER: 'arcade-hub',
+      // Tests never call a real AI provider (see test/ai.test.ts).
+      GEMINI_API_KEY: '',
     },
     testTimeout: 20000,
     hookTimeout: 20000,

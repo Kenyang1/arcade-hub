@@ -22,4 +22,10 @@ export const config = {
   seedDevPassword: process.env.SEED_DEV_PASSWORD ?? 'dev-password-123',
   /** Largest save state accepted, in bytes. EmulatorJS states are far smaller than game files. */
   maxSaveStateBytes: 10 * 1024 * 1024,
+  /** Gemini API key from Google AI Studio (free tier). Empty turns the AI features off. */
+  geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+  /** The Gemini model that reads game frames. Pick one in AI Studio that takes images. */
+  geminiModel: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
+  /** How long one AI call may take before it counts as failed. */
+  aiTimeoutMs: 10000,
 }
