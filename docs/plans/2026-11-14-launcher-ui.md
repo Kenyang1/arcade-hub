@@ -101,3 +101,13 @@ Moves forward the M5 phone-width pass.
 - "Add a game" is a disabled button until the M2 add page exists.
 - The launcher column uses `minmax(0, 1fr)`, otherwise the recent row widened
   the page at 400 px.
+
+## Glass launcher refinement (2026-11-14)
+
+- [x] Floating glass navigation, larger featured cover, responsive controls, and light/dark tokens.
+- [x] Four original generated cover templates selected by genre, with a stable ID fallback; prompts in `web/public/covers/README.md`.
+- [x] Short page fades, reversible backdrop crossfades, consistent press feedback, and immediate keyboard navigation. Reduced motion disables transitions; Play page logic remains unchanged.
+- [x] Lint, typecheck, production build and browser navigation checks.
+- [x] Desktop and 400 px screenshots captured with fake games in `docs/screenshots/`. At 400 px, document scroll width equals client width (385 px plus browser scrollbar).
+
+Artwork templates replace the original gradient-only covers. They are decorative genre art, not game screenshots. Automatic assignment requires no cover field or API changes; a manual template picker and import screen remain out of scope. Screenshots document dark mode. Physical-device frame-rate testing and a running emulator session remain unverified.

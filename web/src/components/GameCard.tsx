@@ -47,7 +47,9 @@ export default function GameCard({ game, variant, meta, onSelect }: Props) {
         <GameCover game={game} size="wide" showTitle={false} />
         <span className="featured-text">
           <span className="featured-title">{game.title}</span>
+          <span className="featured-description">{game.description}</span>
           {meta && <span className="featured-meta">{meta}</span>}
+          <span className="featured-open">Explore game <span aria-hidden="true">↗</span></span>
         </span>
       </Link>
     )

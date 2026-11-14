@@ -231,7 +231,11 @@ export default function CatalogPage() {
   return (
     <>
       {selected && <Backdrop game={selected} />}
-      <h1 className="visually-hidden">Game library</h1>
+      <header className="launcher-intro">
+        <p className="eyebrow">Your next adventure</p>
+        <h1>Time to play.</h1>
+        <p>A little nostalgia. A new high score.</p>
+      </header>
       <div className="launcher" onKeyDown={moveFocus}>
         {error && (
           <p className="error" role="alert">

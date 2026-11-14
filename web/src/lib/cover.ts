@@ -34,3 +34,21 @@ export function coverGlyph(title: string): string {
   if (!second) return first.slice(0, 2).toUpperCase()
   return (first.charAt(0) + second.charAt(0)).toUpperCase()
 }
+
+/** Original artwork templates; presentation only, no API contract changes. */
+export const COVER_TEMPLATES = [
+  { id: 'orbit', label: 'Orbital courier', src: '/covers/orbit.png' },
+  { id: 'ruins', label: 'Emerald ruins', src: '/covers/ruins.png' },
+  { id: 'velocity', label: 'Cloud circuit', src: '/covers/velocity.png' },
+  { id: 'prism', label: 'Glass puzzle', src: '/covers/prism.png' },
+] as const
+
+/** New imports receive artwork automatically, consistently across visits. */
+export function coverTemplate(game: Pick<Game, 'id' | 'genre'>) {
+  const genre = game.genre.toLowerCase()
+  if (/puzzle|strategy|board/.test(genre)) return COVER_TEMPLATES[3]
+  if (/racing|sport|driving/.test(genre)) return COVER_TEMPLATES[2]
+  if (/adventure|rpg|role|platform/.test(genre)) return COVER_TEMPLATES[1]
+  if (/shoot|action|space/.test(genre)) return COVER_TEMPLATES[0]
+  return COVER_TEMPLATES[hash(game.id) % COVER_TEMPLATES.length] ?? COVER_TEMPLATES[3]
+}
