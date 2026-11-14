@@ -40,9 +40,11 @@ export default function MySavesPage() {
     )
   }
 
-  // Saves come newest first, so each group's first save starts a new heading.
+  // Newest first, so each group's first save starts a new heading. Sorted here
+  // rather than trusting the API's order, so a label never shows up twice.
+  const newestFirst = [...(saves ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const groups: { label: string; saves: Save[] }[] = []
-  for (const save of saves ?? []) {
+  for (const save of newestFirst) {
     const label = dateGroup(new Date(save.createdAt))
     const last = groups.at(-1)
     if (last?.label === label) last.saves.push(save)

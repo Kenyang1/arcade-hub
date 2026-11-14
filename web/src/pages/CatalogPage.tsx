@@ -18,6 +18,8 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 const VIEW_KEY = 'arcade-hub.libraryView'
 const RECENT_LIMIT = 6
+/** How long typing must pause before the search goes to the API. */
+const SEARCH_DELAY_MS = 250
 
 function readView(): View {
   try {
@@ -152,17 +154,28 @@ export default function CatalogPage() {
   const navigate = useNavigate()
   const signedIn = getCurrentUser() !== null
   const [search, setSearch] = useState('')
+  // The search the API last got. It trails `search` until typing pauses, so
+  // typing a title sends one request, not one per key.
+  const [query, setQuery] = useState('')
   const [games, setGames] = useState<Game[] | null>(null)
   const [saves, setSaves] = useState<Save[]>([])
   const [error, setError] = useState<string | null>(null)
+  // Kept apart from `error`: browsing needs no sign-in, so a failed saves
+  // request (an expired token, say) only costs the Recent row.
+  const [savesError, setSavesError] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('title')
   const [view, setView] = useState<View>(readView)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setQuery(search), search.trim() === '' ? 0 : SEARCH_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  useEffect(() => {
     let cancelled = false
-    listGames({ search })
+    listGames({ search: query })
       .then((result) => {
         if (cancelled) return
         setGames(result)
@@ -174,24 +187,26 @@ export default function CatalogPage() {
     return () => {
       cancelled = true
     }
-  }, [search])
+  }, [query])
 
   useEffect(() => {
     if (!signedIn) return
     let cancelled = false
     listSaves()
       .then((result) => {
-        if (!cancelled) setSaves(result)
+        if (cancelled) return
+        setSaves(result)
+        setSavesError(null)
       })
       .catch((reason: unknown) => {
-        if (!cancelled) setError(errorMessage(reason))
+        if (!cancelled) setSavesError(errorMessage(reason))
       })
     return () => {
       cancelled = true
     }
   }, [signedIn])
 
-  const searching = search.trim() !== ''
+  const searching = query.trim() !== ''
   const recent = useMemo(
     () => (games && !searching ? recentEntries(games, saves) : { played: false, entries: [] }),
     [games, saves, searching],
@@ -215,8 +230,11 @@ export default function CatalogPage() {
       setSort(SORTS[(index + 1) % SORTS.length]?.key ?? 'title')
     },
     v: () => changeView(view === 'grid' ? 'list' : 'grid'),
+    // The focused card wins over `selected`, which also follows the mouse.
     p: () => {
-      if (selected) navigate(`/play/${selected.id}`)
+      const focused = document.activeElement?.closest<HTMLElement>('[data-game-id]')?.dataset.gameId
+      const id = focused ?? selected?.id
+      if (id) navigate(`/play/${id}`)
     },
   })
 
@@ -243,6 +261,11 @@ export default function CatalogPage() {
           </p>
         )}
         {games === null && !error && <p className="muted">Loading…</p>}
+        {savesError && !searching && (
+          <p className="muted" role="status">
+            Your recent games couldn't load: {savesError}
+          </p>
+        )}
 
         {recent.entries.length > 0 && (
           <section className="recent" aria-labelledby="recent-heading">

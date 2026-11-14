@@ -1,7 +1,11 @@
 import { COVER_TEMPLATES, coverTemplate } from '../lib/cover.ts'
 import type { Game } from '../lib/types.ts'
 
-/** Stable layers let rapid selection changes reverse a crossfade smoothly. */
+/**
+ * The blurred artwork behind the page. Stable layers let rapid selection
+ * changes reverse a crossfade smoothly; each layer is a small (about 5 KB)
+ * image, so keeping all four loaded costs little.
+ */
 export default function Backdrop({ game }: { game: Game }) {
   const selected = coverTemplate(game).id
   return (
@@ -11,7 +15,7 @@ export default function Backdrop({ game }: { game: Game }) {
           key={template.id}
           className="backdrop-art"
           data-active={template.id === selected}
-          src={template.src}
+          src={template.backdrop}
           alt=""
           decoding="async"
         />

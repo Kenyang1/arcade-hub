@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { coverColors, coverGlyph, coverTemplate } from '../lib/cover.ts'
+import { coverColors, coverTemplate } from '../lib/cover.ts'
 import type { Game } from '../lib/types.ts'
 
 interface Props {
@@ -10,16 +10,13 @@ interface Props {
   showTitle?: boolean
 }
 
-/** A generated cover: the game's gradient, a pixel grid, a big glyph and the title. */
+/** A game's cover: its artwork over its gradient, the system badge and the title. */
 export default function GameCover({ game, size, showTitle = true }: Props) {
   const [from, to] = coverColors(game)
   const style = { '--cover-from': from, '--cover-to': to } as CSSProperties
   return (
     <span className={`cover cover-${size}`} style={style}>
       <img className="cover-art" src={coverTemplate(game).src} alt="" loading={size === 'wide' ? 'eager' : 'lazy'} decoding="async" />
-      <span className="cover-glyph" aria-hidden="true">
-        {coverGlyph(game.title)}
-      </span>
       {size !== 'thumb' && (
         <span className="cover-core" aria-hidden="true">
           {game.core.toUpperCase()}

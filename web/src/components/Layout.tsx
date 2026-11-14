@@ -66,10 +66,6 @@ export default function Layout() {
           <NavLink to="/saves">My Saves</NavLink>
         </nav>
         <div className="topbar-actions">
-          <button type="button" className="pill" disabled title="The Add game page lands in M2">
-            <span aria-hidden="true">+</span>
-            <span className="pill-label">Add a game</span>
-          </button>
           <NavLink to="/sign-in" className="account" aria-label={user ? `Account: ${user.username}` : 'Sign in'}>
             <span className="avatar" aria-hidden="true">
               {user ? user.username.slice(0, 1).toUpperCase() : '?'}

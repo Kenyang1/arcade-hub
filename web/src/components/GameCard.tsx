@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Link } from 'react-router'
 import type { Game } from '../lib/types.ts'
 import GameCover from './GameCover.tsx'
@@ -14,10 +15,12 @@ interface Props {
 
 /** A game in the launcher. Opens the game's page. Arrow keys move between cards (data-card). */
 export default function GameCard({ game, variant, meta, onSelect }: Props) {
+  const id = useId()
   const select = () => onSelect?.(game)
   const shared = {
     to: `/games/${game.id}`,
     'data-card': '',
+    'data-game-id': game.id,
     onFocus: select,
     onMouseEnter: select,
   }
@@ -43,12 +46,25 @@ export default function GameCard({ game, variant, meta, onSelect }: Props) {
 
   if (variant === 'featured') {
     return (
-      <Link {...shared} className="game-card game-card-featured">
+      // Named by the title alone, described by the meta line: the whole card's
+      // text would make a paragraph-long link name for screen readers.
+      <Link
+        {...shared}
+        className="game-card game-card-featured"
+        aria-labelledby={`${id}-title`}
+        aria-describedby={meta ? `${id}-meta` : undefined}
+      >
         <GameCover game={game} size="wide" showTitle={false} />
         <span className="featured-text">
-          <span className="featured-title">{game.title}</span>
+          <span className="featured-title" id={`${id}-title`}>
+            {game.title}
+          </span>
           <span className="featured-description">{game.description}</span>
-          {meta && <span className="featured-meta">{meta}</span>}
+          {meta && (
+            <span className="featured-meta" id={`${id}-meta`}>
+              {meta}
+            </span>
+          )}
           <span className="featured-open">Explore game <span aria-hidden="true">↗</span></span>
         </span>
       </Link>

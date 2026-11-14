@@ -1,5 +1,7 @@
-// Generated covers. Games have no cover image, so each one gets a gradient
-// picked from a hash of its id, the same on every page and every visit.
+// Cover art. Games have no cover image of their own, so each one gets one of
+// four original artwork templates by genre, plus a gradient picked from a hash
+// of its id that shows while the artwork loads. Both are the same on every
+// page and every visit.
 
 import type { Game } from './types.ts'
 
@@ -22,25 +24,21 @@ function hash(text: string): number {
   return value
 }
 
-/** The two gradient colors of a game's cover. */
+/** The two gradient colors behind a game's cover, shown while its artwork loads. */
 export function coverColors(game: Pick<Game, 'id'>): readonly [string, string] {
   return PALETTES[hash(game.id) % PALETTES.length] ?? ['#36d1dc', '#5b86e5']
 }
 
-/** Up to two letters for the big glyph on a cover: "Bomb Sweeper" gives "BS". */
-export function coverGlyph(title: string): string {
-  const [first, second] = title.split(/\s+/).filter((word) => /[a-z0-9]/i.test(word))
-  if (!first) return '?'
-  if (!second) return first.slice(0, 2).toUpperCase()
-  return (first.charAt(0) + second.charAt(0)).toUpperCase()
-}
-
-/** Original artwork templates; presentation only, no API contract changes. */
+/**
+ * Original artwork templates; presentation only, no API contract changes.
+ * `src` is 960 px wide for cards; `backdrop` is 160 px wide, since the page
+ * backdrop blurs it heavily.
+ */
 export const COVER_TEMPLATES = [
-  { id: 'orbit', label: 'Orbital courier', src: '/covers/orbit.png' },
-  { id: 'ruins', label: 'Emerald ruins', src: '/covers/ruins.png' },
-  { id: 'velocity', label: 'Cloud circuit', src: '/covers/velocity.png' },
-  { id: 'prism', label: 'Glass puzzle', src: '/covers/prism.png' },
+  { id: 'orbit', label: 'Orbital courier', src: '/covers/orbit.webp', backdrop: '/covers/orbit-backdrop.webp' },
+  { id: 'ruins', label: 'Emerald ruins', src: '/covers/ruins.webp', backdrop: '/covers/ruins-backdrop.webp' },
+  { id: 'velocity', label: 'Cloud circuit', src: '/covers/velocity.webp', backdrop: '/covers/velocity-backdrop.webp' },
+  { id: 'prism', label: 'Glass puzzle', src: '/covers/prism.webp', backdrop: '/covers/prism-backdrop.webp' },
 ] as const
 
 /** New imports receive artwork automatically, consistently across visits. */

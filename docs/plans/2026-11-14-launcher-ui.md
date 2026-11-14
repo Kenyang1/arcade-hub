@@ -73,11 +73,16 @@ No step changes `packages/contracts`, an `api.ts` signature or the data model.
 | Recent games from saves | Only signal of play we have | Tracking play time (new data) |
 | Theme follows `prefers-color-scheme` only | No settings page yet | A manual toggle stored in localStorage |
 | Shortcuts off on the Play page | Keys go to the emulator | Global shortcuts everywhere |
+| Cover art ships as WebP: 960 px for cards, 160 px for the backdrop (review fix) | The 1254 px PNGs were about 2.2 MB each, and the backdrop loaded all four: about 9 MB on a first visit. The WebP set is under 450 KB, and the backdrop layers are about 5 KB each because they are blurred anyway | Keeping the PNGs and lazy-loading the backdrop (the backdrop layers are always on screen) |
+| Search waits 250 ms after typing stops (review fix) | `listGames` is a real API call; one request per keystroke was wasted server work | Filtering on the client (the API owns search) |
+| A failed saves request only costs the Recent row, with a quiet note (review fix) | Browsing needs no sign-in, so an expired token must not put an error on the catalog | Sharing the page's `error` state |
+| P plays the focused card, else the hovered or first one (review fix) | Hover also moves the selection for the backdrop; keyboard focus is what the player means | Dropping hover selection, which the reference design uses |
+| No "Add a game" button until the add page exists (review fix) | A disabled control on every page explained only by a tooltip that keyboard and touch users can't reach | Keeping it disabled |
 
 ## Out of scope
 
 Real cover art, play-time tracking, a theme toggle, gamepad navigation, the
-Add/Edit game pages themselves (the "Add a game" button waits for them).
+Add/Edit game pages themselves, and the "Add a game" button, which comes back with them.
 
 ## Verification
 
@@ -98,7 +103,7 @@ Moves forward the M5 phone-width pass.
 - The Play page needed no change at all: `Layout.tsx` adds `main-play` to
   `<main>` on `/play/*`, and the styles hang off that class, so PR 16 merges
   cleanly.
-- "Add a game" is a disabled button until the M2 add page exists.
+- "Add a game" was a disabled button until the M2 add page exists; the review removed it until then.
 - The launcher column uses `minmax(0, 1fr)`, otherwise the recent row widened
   the page at 400 px.
 
