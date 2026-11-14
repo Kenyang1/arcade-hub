@@ -4,7 +4,7 @@
 - **Owner:** Kenyang (Soham reviews `api/` and the contract; Khoi adds the key to the Kubernetes Secret)
 - **Milestone:** M3 to M5 from docs/spec.md (research during M2)
 - **Date:** 2026-11-10
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/20
 
 ## Goal
 Our professor asked us to add AI to Arcade Hub. When this is done, a player
