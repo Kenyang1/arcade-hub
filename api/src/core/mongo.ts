@@ -1,5 +1,6 @@
 import { type Db, MongoClient } from 'mongodb'
 import { config } from '../config.ts'
+import { HttpError } from '../http/problem.ts'
 import { logger } from '../logger.ts'
 
 let client: MongoClient | undefined
@@ -27,6 +28,19 @@ export function connectMongo(
     connecting = undefined
   })
   return connecting
+}
+
+/**
+ * The database a route needs, or a 503 when MongoDB is not reachable: a missing
+ * database is a temporary condition, not a bug in the request.
+ */
+export async function database(): Promise<Db> {
+  try {
+    return await connectMongo()
+  } catch (error) {
+    logger.warn({ err: error }, 'mongo is not reachable')
+    throw new HttpError(503, 'The database is not reachable. Please try again in a moment.')
+  }
 }
 
 /** True once a connection has been made. */
