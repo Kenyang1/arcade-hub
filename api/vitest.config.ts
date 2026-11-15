@@ -13,6 +13,11 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
       MONGO_DB: 'arcadehub_test',
+      JWT_SIGNING_KEY: 'test-signing-key-not-a-secret',
+      JWT_ISSUER: 'arcade-hub',
+      // Requests with no token play as the stand-in account, as the cluster does
+      // until sign-in lands in M3 (see src/core/auth.ts).
+      ALLOW_STAND_IN_USER: 'true',
       // Tests never call a real AI provider (see test/ai.test.ts).
       GEMINI_API_KEY: '',
     },

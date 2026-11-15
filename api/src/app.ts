@@ -4,6 +4,8 @@ import { errorHandler, notFound } from './http/problem.ts'
 import { openApiDocument } from './openapi.ts'
 import games from './routes/games.ts'
 import health from './routes/health.ts'
+import saves from './routes/saves.ts'
+import sessions from './routes/sessions.ts'
 
 /** Builds the Express app: routes, Swagger, and the ProblemDetails error handler. */
 export function createApp() {
@@ -13,6 +15,8 @@ export function createApp() {
 
   app.use('/api/health', health)
   app.use('/api/games', games)
+  app.use('/api/sessions', sessions)
+  app.use('/api/saves', saves)
 
   app.get('/swagger.json', (_req, res) => {
     res.json(openApiDocument)

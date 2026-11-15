@@ -1,5 +1,6 @@
 import { app } from './app.ts'
 import { config } from './config.ts'
+import { seedDevUsers } from './core/auth.ts'
 import { closeMongo, connectMongo } from './core/mongo.ts'
 import { logger } from './logger.ts'
 
@@ -7,8 +8,9 @@ import { logger } from './logger.ts'
 // comes back, which beats a pod that crashes on boot and has to be restarted.
 async function start(): Promise<void> {
   try {
-    await connectMongo()
+    const db = await connectMongo()
     logger.info({ mongoDb: config.mongoDb }, 'connected to MongoDB')
+    await seedDevUsers(db)
   } catch (error) {
     logger.warn({ err: error }, 'MongoDB is not reachable yet; the next request retries')
   }
