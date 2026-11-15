@@ -2,6 +2,8 @@ import { type Db, type Filter, GridFSBucket, ObjectId } from 'mongodb'
 import type { Readable } from 'node:stream'
 import { type Save, type SaveKind, SaveSchema } from '@arcade-hub/contracts'
 import { HttpError } from '../http/problem.ts'
+import { logger } from '../logger.ts'
+import { type FrameGame, type VisionModel, defaultVisionModel, labelFrame } from './ai.ts'
 
 /**
  * The GridFS bucket that holds save states. A `saves` document keeps only the
@@ -19,6 +21,8 @@ export type SaveDocument = {
   stateFileId: ObjectId
   kind: SaveKind
   createdAt: Date
+  /** Where the player was, read from the game screen by the AI (see labelSave). Absent until then, or for good. */
+  label?: string
 }
 
 function toSave(document: SaveDocument): Save {
@@ -28,6 +32,7 @@ function toSave(document: SaveDocument): Save {
     gameId: document.gameId.toHexString(),
     kind: document.kind,
     createdAt: document.createdAt.toISOString(),
+    label: document.label,
   })
 }
 
@@ -116,4 +121,32 @@ export async function openSaveFile(db: Db, userId: ObjectId, id: string): Promis
   const file = await bucket.find({ _id: document.stateFileId }).next()
   if (!file) throw new HttpError(404, 'That save file does not exist.')
   return { length: file.length, stream: bucket.openDownloadStream(file._id) }
+}
+
+/**
+ * Reads the game screen uploaded with a save and stores the AI's label on the
+ * save. Runs after the upload has been answered: it never fails or slows down
+ * the save (docs/plans/2026-11-10-ai-integration.md). Returns the label, or
+ * null when the AI is off, failed, or wasn't sure; the save then has no label.
+ * A save that already has a label keeps it.
+ */
+export async function labelSave(
+  db: Db,
+  saveId: ObjectId,
+  png: Buffer,
+  game: FrameGame,
+  model: VisionModel | null = defaultVisionModel(),
+): Promise<string | null> {
+  const result = await labelFrame(png, game, model)
+  if (!result?.label) return null
+
+  const update = await db
+    .collection<SaveDocument>(SAVES_COLLECTION)
+    .updateOne({ _id: saveId, label: { $exists: false } }, { $set: { label: result.label } })
+  if (update.modifiedCount === 0) return null
+  logger.info(
+    { saveId: saveId.toHexString(), gameId: game.id, confidence: result.confidence },
+    'save labelled',
+  )
+  return result.label
 }

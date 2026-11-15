@@ -1,14 +1,18 @@
 import { type Request, type Response, Router } from 'express'
 import multer from 'multer'
-import { ObjectId } from 'mongodb'
+import { type Db, ObjectId } from 'mongodb'
 import {
+  type Save,
+  SAVE_FRAME_FIELD,
   SAVE_STATE_FIELD,
   SaveUploadFieldsSchema,
   StartSessionRequestSchema,
   UpdateSessionRequestSchema,
 } from '@arcade-hub/contracts'
 import { config } from '../config.ts'
-import { type NewSave, createSave } from '../core/saves.ts'
+import { type VisionModel, defaultVisionModel } from '../core/ai.ts'
+import { findGame } from '../core/games.ts'
+import { type NewSave, createSave, labelSave } from '../core/saves.ts'
 import {
   assertAcceptsSaves,
   endSession,
@@ -27,13 +31,23 @@ const router = Router()
 
 /**
  * The save upload is multipart: the `kind` field plus the state as a file part
- * named `state` (see SaveUploadFieldsSchema). It is held in memory just long
- * enough to reach GridFS, and capped at config.maxSaveStateBytes.
+ * named `state`, and optionally the game screen as a PNG part named `frame`
+ * (see SaveUploadFieldsSchema). Both are held in memory just long enough to
+ * reach GridFS or the AI, and each is capped at config.maxSaveStateBytes.
  */
 const uploadState = multer({
   storage: multer.memoryStorage(),
-  limits: { files: 1, fileSize: config.maxSaveStateBytes, fields: 8 },
-}).single(SAVE_STATE_FIELD)
+  limits: { files: 2, fileSize: config.maxSaveStateBytes, fields: 8 },
+}).fields([
+  { name: SAVE_STATE_FIELD, maxCount: 1 },
+  { name: SAVE_FRAME_FIELD, maxCount: 1 },
+])
+
+/** The uploaded file part with this name, if the request had one. */
+function uploadedFile(req: Request, name: string): Express.Multer.File | undefined {
+  const files = req.files as Record<string, Express.Multer.File[] | undefined> | undefined
+  return files?.[name]?.[0]
+}
 
 /**
  * Parses the upload inside the handler rather than as middleware, so the caller
@@ -99,18 +113,19 @@ router.post('/:id/saves', authenticate, async (req, res) => {
   if (!fields.success) {
     throw new HttpError(400, 'Some of what you entered is not valid.', fieldErrors(fields.error.issues))
   }
-  if (!req.file) {
+  const state = uploadedFile(req, SAVE_STATE_FIELD)
+  if (!state) {
     throw new HttpError(400, 'Some of what you entered is not valid.', {
       [SAVE_STATE_FIELD]: [`The save state file field "${SAVE_STATE_FIELD}" is required.`],
     })
   }
-  if (req.file.size === 0) throw new HttpError(400, 'The save state is empty.')
+  if (state.size === 0) throw new HttpError(400, 'The save state is empty.')
 
   const input: NewSave = {
     userId,
     gameId: session.gameId,
     kind: fields.data.kind,
-    bytes: req.file.buffer,
+    bytes: state.buffer,
   }
   const save = await createSave(db, input)
   if (save.kind === 'autosave') await recordAutosave(db, session._id, new ObjectId(save.id))
@@ -120,7 +135,25 @@ router.post('/:id/saves', authenticate, async (req, res) => {
     `save uploaded (${save.kind})`,
   )
   res.status(201).json(save)
+
+  // The label comes after the answer, so a slow or failing AI never holds up
+  // or fails the save. labelSave already turns AI failures into null; this
+  // catch is for the database calls around it.
+  const frame = uploadedFile(req, SAVE_FRAME_FIELD)
+  const model = defaultVisionModel()
+  if (frame && frame.size > 0 && model) {
+    const logFields = { sessionId: session._id.toHexString(), saveId: save.id, gameId: save.gameId }
+    labelUploadedSave(db, save, frame.buffer, model).catch((error: unknown) => {
+      logger.error({ ...logFields, err: error }, 'labelling a save failed')
+    })
+  }
 })
+
+async function labelUploadedSave(db: Db, save: Save, png: Buffer, model: VisionModel): Promise<void> {
+  const game = await findGame(db, save.gameId)
+  if (!game) return
+  await labelSave(db, new ObjectId(save.id), png, { id: game.id, title: game.title }, model)
+}
 
 /** POST /api/sessions/{id}/heartbeat: still playing. The player page sends this every 30 s. */
 router.post('/:id/heartbeat', authenticate, async (req, res) => {

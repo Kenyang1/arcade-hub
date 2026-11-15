@@ -85,12 +85,17 @@ captured during a session the caller owns.
 - [x] **Frame capture (M3).** `captureFrame(): Promise<Blob>` in
   `emulator.ts`. (`web/src/lib/emulator.ts`) Done, using
   `gameManager.screenshot()` with a 5 s timeout. Not yet called by any page; the save-labels step does that.
-- [ ] **Save labels (M4).** The save upload sends a frame. The API labels it
-  and stores the label on the save document. **`api.ts` signature change**
-  (`uploadSave` takes the frame). (`api/src/routes/saves.ts`, `api/src/core/`,
-  `web/src/lib/api.ts`, `web/src/pages/PlayPage.tsx`) Waits for PR 18 (the
-  save endpoints) and PR 16 (`uploadSave` real call) to merge, since both
-  change these files.
+- [x] **Save labels, API (M4).** The save upload takes an optional PNG part
+  named `frame` (`SAVE_FRAME_FIELD` in the contract). After answering the
+  upload, the API labels the frame and stores `label` on the save document;
+  `GET /api/saves` returns it. **Contract and data-model change.**
+  (`packages/contracts/src/index.ts`, `api/src/routes/sessions.ts`,
+  `api/src/core/saves.ts`, `api/src/openapi.ts`, `api/test/save-labels.test.ts`)
+  Done on `feat/save-labels-api`, on top of the label contract (PR 22).
+- [ ] **Save labels, web (M4).** On a manual save, the Play page captures a
+  frame and `uploadSave` sends it. **`api.ts` signature change** (`uploadSave`
+  takes the frame). (`web/src/lib/api.ts`, `web/src/pages/PlayPage.tsx`) Waits
+  for PR 16 (`uploadSave` real call), which changes both files.
 - [ ] **Kubernetes Secret (M4), Khoi.** Add `GEMINI_API_KEY` to
   `arcade-secrets` and pass it to the API Deployment. The value never goes in git.
   (`infra/k8s/deployment.yaml`)
@@ -122,6 +127,9 @@ captured during a session the caller owns.
 | A low-confidence answer comes back as `label: null` (Nov 14) | Below 0.5 the save shows its time, which is better than a wrong label | Showing every label |
 | `Save.label` is an optional string, absent when there is no label (Nov 14) | A save has no label when the AI is off, failed or wasn't sure, and the page treats all three the same: it shows the time. Optional keeps every existing save valid | `label: string \| null` on every save |
 | The contract change ships before the save endpoints and `uploadSave` land (Nov 14) | PR 18 and PR 16 still change the save route and `api.ts`, so this PR adds only the field, mocks and display, and stays out of their files | Building the whole step on top of PR 18's branch |
+| The API labels a save after answering its upload (Nov 15) | The AI call can take up to 10 s; the save must never wait for it. The label appears on the next `GET /api/saves`, which My Saves loads when opened | Awaiting the label before answering; a separate labelling job |
+| The API labels any save sent with a frame; the web sends frames only for manual saves (Nov 15) | Autosaves come every 60 s, and the free tier's daily quota would run out within a few hours of play. Keeping the policy in the web leaves the API simple | Labelling every autosave; a per-session rate limit in the API |
+| The frame is a separate multipart part, never stored (Nov 15) | It is only needed for the one AI call, and keeping game screens would need its own retention rule | Keeping frames in GridFS next to the state |
 | A rate-limit or quota error is treated like any other AI failure | The free tier has per-minute and per-day limits; the save still works and shows its time | Retrying until the call succeeds |
 
 ## Out of scope
