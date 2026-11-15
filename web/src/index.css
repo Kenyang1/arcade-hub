@@ -1,15 +1,61 @@
-:root {
-  --bg: #0f0e17;
-  --surface: #1c1a2e;
-  --border: #2d2a45;
-  --text: #f2f0ff;
-  --muted: #a8a4c4;
-  --accent: #8b7cf6;
-  --danger: #ff6b81;
+/* Arcade Hub design tokens and styles. Light theme by default, dark theme from
+   prefers-color-scheme. Every color in the app comes from a token below. */
 
-  color-scheme: dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+:root {
+  --bg: #eef2f7;
+  --bg-glow: #dbe7f3;
+  --surface: #ffffff;
+  --surface-2: #f3f6fa;
+  --surface-glass: rgb(255 255 255 / 0.72);
+  --border: rgb(15 23 42 / 0.1);
+  --text: #162033;
+  --muted: #5a667b;
+  --accent: #0aa8c6;
+  --accent-text: #007a92;
+  --accent-soft: rgb(10 168 198 / 0.14);
+  --accent-glow: rgb(10 168 198 / 0.35);
+  --on-accent: #ffffff;
+  --danger: #c8283f;
+  --danger-soft: rgb(200 40 63 / 0.1);
+  --shadow-card: 0 6px 18px rgb(15 23 42 / 0.12);
+  --shadow-lift: 0 14px 30px rgb(15 23 42 / 0.18);
+  --backdrop-opacity: 0.5;
+
+  --radius-card: 0.6rem;
+  --radius-control: 0.5rem;
+  --topbar-height: 3.5rem;
+  --hintbar-height: 2.75rem;
+  --gutter: clamp(1rem, 3vw, 2rem);
+
+  color-scheme: light;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1119;
+    --bg-glow: #121a28;
+    --surface: #171d2a;
+    --surface-2: #1e2636;
+    --surface-glass: rgb(18 23 34 / 0.78);
+    --border: rgb(255 255 255 / 0.09);
+    --text: #edf1f8;
+    --muted: #9aa5b9;
+    --accent: #3fd3ec;
+    --accent-text: #6be0f3;
+    --accent-soft: rgb(63 211 236 / 0.14);
+    --accent-glow: rgb(63 211 236 / 0.35);
+    --on-accent: #062530;
+    --danger: #ff7b8c;
+    --danger-soft: rgb(255 123 140 / 0.12);
+    --shadow-card: 0 8px 20px rgb(0 0 0 / 0.35);
+    --shadow-lift: 0 16px 36px rgb(0 0 0 / 0.5);
+    --backdrop-opacity: 0.42;
+
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -18,17 +64,28 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  background:
+    radial-gradient(60rem 30rem at 85% 110%, var(--bg-glow), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-text);
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 h1 {
-  font-size: 1.5rem;
-  margin: 0 0 1rem;
+  font-size: 1.6rem;
+  margin: 0 0 0.75rem;
 }
 
 h2 {
@@ -36,84 +93,285 @@ h2 {
   margin: 1.5rem 0 0.5rem;
 }
 
-.site-header {
+kbd {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -3rem;
+  z-index: 20;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* ---- Shell: top bar, main, hint bar ------------------------------------ */
+
+.app {
+  min-height: 100vh;
+  padding-bottom: calc(var(--hintbar-height) + 1.5rem);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
   align-items: center;
-  padding: 0.75rem 1rem;
+  gap: 0.5rem 1.25rem;
+  min-height: var(--topbar-height);
+  padding: 0.5rem var(--gutter);
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px) saturate(1.4);
   border-bottom: 1px solid var(--border);
 }
 
-.site-header .brand {
-  margin-right: auto;
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
   font-weight: 700;
-  color: var(--text);
+  font-size: 0.95rem;
   text-decoration: none;
+  border-radius: var(--radius-control);
 }
 
-.site-header nav {
+.brand-mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+}
+
+.topnav {
   display: flex;
-  gap: 1rem;
+  gap: 0.25rem;
 }
 
-.site-header nav a {
+.topnav a {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
   color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
   text-decoration: none;
 }
 
-.site-header nav a.active {
+.topnav a:hover {
   color: var(--text);
 }
 
-main {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 1rem;
+.topnav a.active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
-.toolbar {
+.topbar-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
 }
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.2rem 0.65rem 0.2rem 0.2rem;
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.account:hover,
+.account.active {
+  background: var(--accent-soft);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #6c7bff);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.avatar-large {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.main {
+  max-width: 82rem;
+  margin: 0 auto;
+  padding: 1.25rem var(--gutter) 1rem;
+}
+
+/* A floating pill, centred at the bottom. Its glass background is set with the
+   other glass surfaces in the "Glass launcher" section. */
+.hintbar {
+  position: fixed;
+  inset: auto 50% 0.75rem auto;
+  transform: translateX(50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  height: var(--hintbar-height);
+  padding: 0 var(--gutter);
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  box-shadow: var(--glass-shadow);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.hintbar-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--accent-text);
+}
+
+.hintbar-list {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hintbar-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.hintbar kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+/* ---- Controls ----------------------------------------------------------- */
 
 input,
 select,
 button,
 .button {
   font: inherit;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
 }
 
 input {
-  flex: 1 1 12rem;
   min-width: 0;
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+  border-color: var(--accent);
 }
 
 button,
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 600;
   cursor: pointer;
   text-decoration: none;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+button:hover:not(:disabled),
+.button:hover {
+  border-color: var(--accent);
+}
+
+button:active:not(:disabled),
+.button:active {
+  transform: translateY(1px);
 }
 
 button.primary,
 .button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
+}
+
+button.primary:hover:not(:disabled),
+.button.primary:hover {
+  filter: brightness(1.08);
+}
+
+.button-large {
+  padding: 0.7rem 1.4rem;
+  font-size: 1rem;
 }
 
 button.link {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
+  box-shadow: none;
+  color: var(--accent-text);
   text-decoration: underline;
 }
 
@@ -122,28 +380,17 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.icon-button {
+  padding: 0.4rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
 }
 
-.card {
-  padding: 1rem;
-  border-radius: 0.75rem;
-  background: var(--surface);
-}
-
-.card h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.1rem;
-}
-
-.card p {
-  margin: 0 0 0.5rem;
+.icon-button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .muted {
@@ -151,31 +398,57 @@ button:disabled {
 }
 
 .error {
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
   color: var(--danger);
+  font-weight: 600;
 }
 
-.form {
-  display: grid;
-  gap: 0.75rem;
-  max-width: 24rem;
+.empty {
+  padding: 2rem 1rem;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-card);
+  color: var(--muted);
+  text-align: center;
 }
 
-.form label {
-  display: grid;
-  gap: 0.25rem;
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.player {
-  width: 100%;
-  max-width: 48rem;
-  aspect-ratio: 4 / 3;
-  border-radius: 0.75rem;
-  background: #000;
+.section-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
-.player:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.page-title {
+  margin-top: 0.5rem;
+  font-size: 1.75rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-manual {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-text);
 }
 
 .actions {
@@ -186,22 +459,776 @@ button:disabled {
   margin-top: 1rem;
 }
 
-table {
+.panel {
+  max-width: 34rem;
+  margin: 2rem auto;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-card) * 1.5);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-narrow {
+  max-width: 24rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.form input {
+  font-weight: 400;
+}
+
+.switch-mode {
+  margin: 1rem 0 0;
+}
+
+.back-link {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.3rem;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  background: var(--accent-soft);
+}
+
+/* ---- Covers --------------------------------------------------------------- */
+
+.cover {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  container-type: inline-size;
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(circle at 78% 18%, rgb(255 255 255 / 0.38), transparent 45%),
+    linear-gradient(150deg, var(--cover-from), var(--cover-to));
+  color: #fff;
+  isolation: isolate;
+}
+
+/* The artwork, over the gradient that shows while it loads. Titles stay in
+   HTML for legibility and accessibility. */
+.cover-art {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  border-collapse: collapse;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  z-index: -1;
 }
 
-th,
-td {
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
+/* Shade under the title, so white text reads on any artwork. */
+.cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(0 8 18 / 0.88), transparent 70%);
+  z-index: -1;
 }
 
-.badge {
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
+.cover-core {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.35);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.cover-title {
+  position: absolute;
+  inset: auto 0.7rem 0.6rem;
+  font-size: max(0.85rem, 10.5cqi);
+  font-weight: 800;
+  line-height: 1.1;
+  text-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+}
+
+.cover-tall {
+  aspect-ratio: 3 / 4;
+}
+
+.cover-wide {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-wide .cover-art {
+  object-position: center 38%;
+}
+
+.cover-thumb {
+  width: 3.25rem;
+  flex: none;
+  aspect-ratio: 3 / 4;
+  border-radius: calc(var(--radius-card) * 0.7);
+}
+
+/* ---- Hero backdrop ------------------------------------------------------ */
+
+.backdrop {
+  position: absolute;
+  inset: 0 0 auto;
+  height: min(38rem, 80vh);
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, #000 35%, transparent);
+}
+
+/* One layer per artwork template; the active one fades in (Backdrop.tsx). */
+.backdrop-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  filter: blur(32px);
+  transition: opacity var(--motion-surface) ease;
+}
+
+.backdrop-art[data-active='true'] {
+  opacity: var(--backdrop-opacity);
+}
+
+/* ---- Cards -------------------------------------------------------------- */
+
+.game-card {
+  position: relative;
+  display: block;
+  border-radius: var(--radius-card);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.game-card .cover {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.18s ease;
+}
+
+.game-card:hover,
+.game-card:focus-visible {
+  transform: translateY(-3px);
+}
+
+.game-card:hover .cover {
+  box-shadow: var(--shadow-lift);
+}
+
+/* The selection ring: an accent outline with a soft glow, like a console menu. */
+.game-card:focus-visible,
+.game-row:focus-visible {
+  outline: none;
+}
+
+.game-card:focus-visible .cover,
+.game-row:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 5px var(--accent),
+    0 0 22px 6px var(--accent-glow),
+    var(--shadow-lift);
+}
+
+.card-meta {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0 0.15rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.game-card-featured {
+  height: 100%;
+}
+
+.featured-text {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 0.15rem;
+  padding: 1rem 1.1rem;
+  color: #fff;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  background: linear-gradient(to top, rgb(0 0 0 / 0.45), transparent);
+}
+
+.featured-title {
+  font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.featured-meta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* ---- Catalog: recent row and library ------------------------------------ */
+
+.launcher {
+  display: grid;
+  /* minmax(0, …): the recent row scrolls inside the column instead of widening it. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.recent {
+  --row-height: clamp(11rem, 26vw, 15.5rem);
+}
+
+.recent-row {
+  display: flex;
+  gap: 0.9rem;
+  margin: 0.4rem calc(var(--gutter) * -1) 0;
+  padding: 0.5rem var(--gutter) 1rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: thin;
+}
+
+.recent-item {
+  display: grid;
+  grid-template-rows: 1.4rem var(--row-height);
+  flex: none;
+  width: calc(var(--row-height) * 0.75);
+  scroll-snap-align: start;
+}
+
+.recent-item-featured {
+  width: min(calc(var(--row-height) * 1.75), calc(100vw - 2 * var(--gutter) - 3rem));
+}
+
+.recent-item .game-card-tall .cover {
+  height: var(--row-height);
+}
+
+.group-label {
+  align-self: start;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.library-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sort select {
+  padding: 0.2rem 0.4rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sort select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 1 16rem;
+  margin-left: auto;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
-  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.search input {
+  flex: 1;
+  padding: 0.4rem 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+
+.view-toggle {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 1.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.game-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem 0.6rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    box-shadow 0.18s,
+    border-color 0.18s;
+}
+
+.game-row:hover {
+  border-color: var(--accent);
+}
+
+.game-row-text {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.game-row-title {
+  font-weight: 700;
+}
+
+.game-row-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.game-row-description {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-row-go {
+  color: var(--muted);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* ---- Game details ------------------------------------------------------- */
+
+.detail-hero {
+  display: grid;
+  grid-template-columns: minmax(9rem, 15rem) 1fr;
+  gap: clamp(1.25rem, 4vw, 2.5rem);
+  align-items: end;
+}
+
+.detail-hero .cover {
+  box-shadow: var(--shadow-lift);
+}
+
+.detail-title {
+  margin: 0 0 0.6rem;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.detail-description {
+  max-width: 40rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.detail-saves {
+  margin-top: 2.5rem;
+}
+
+.detail-saves .section-title {
+  margin-bottom: 0.75rem;
+}
+
+/* ---- Saves -------------------------------------------------------------- */
+
+.save-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.save-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.save-row .button {
+  margin-left: auto;
+  padding: 0.35rem 0.9rem;
+}
+
+.save-when,
+.save-text {
+  min-width: 0;
+}
+
+.save-text {
+  display: grid;
+  flex: 1 1 12rem;
+  font-size: 0.875rem;
+}
+
+.save-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.save-group + .save-group {
+  margin-top: 1.5rem;
+}
+
+.group-heading {
+  margin: 1rem 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---- Play page (PlayPage.tsx keeps its markup; Layout tags main) --------- */
+
+.main-play {
+  max-width: 60rem;
+}
+
+.main-play h1 {
+  font-size: 1.5rem;
+}
+
+.player {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: calc(var(--radius-card) * 1.5);
+  background: #000;
+  box-shadow:
+    0 0 0 1px var(--border),
+    var(--shadow-lift);
+}
+
+.player:focus-visible,
+.player:focus-within {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.main-play .actions {
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-glass);
+}
+
+.main-play .actions > a {
+  margin-left: auto;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-control);
+  font-weight: 600;
+}
+
+.main-play p[role='status']:empty {
+  display: none;
+}
+
+.main-play input[type='file'] {
+  max-width: 100%;
+}
+
+/* ---- Phone width -------------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .topbar {
+    flex-wrap: wrap;
+    padding-block: 0.4rem;
+  }
+
+  .topnav {
+    order: 3;
+    width: 100%;
+    margin-inline: -0.3rem;
+  }
+
+  .account-name {
+    display: none;
+  }
+
+  .hintbar-device {
+    display: none;
+  }
+
+  .hintbar-list {
+    margin-left: 0;
+    gap: 1rem;
+  }
+
+  .search {
+    flex: 1 1 100%;
+    order: 4;
+    margin-left: 0;
+  }
+
+  .view-toggle {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .sort {
+    order: 3;
+  }
+
+  .library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr));
+    gap: 1rem 0.75rem;
+  }
+
+  .game-row-description {
+    display: none;
+  }
+
+  .detail-hero {
+    grid-template-columns: 7.5rem 1fr;
+    align-items: start;
+  }
+
+  .detail-hero .actions .button {
+    width: 100%;
+  }
+
+  .main-play .actions > a {
+    margin-left: 0;
+  }
+}
+
+
+/* Glass launcher: floating chrome, tactile controls, and arcade cover lighting. */
+:root {
+  --radius-card: 1.5rem;
+  --radius-control: 0.85rem;
+  --glass-edge: rgb(255 255 255 / 0.75);
+  --glass-shadow: 0 16px 48px rgb(35 65 92 / 0.1), inset 0 1px 0 var(--glass-edge);
+  --surface-glass: rgb(255 255 255 / 0.76);
+  --bg: #eaf0f4;
+  --bg-glow: #cde6ec;
+  --accent: #087f99;
+  --accent-text: #00677e;
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c141c;
+    --bg-glow: #16343e;
+    --surface-glass: rgb(23 36 48 / 0.82);
+    --glass-edge: rgb(255 255 255 / 0.16);
+    --glass-shadow: 0 16px 48px rgb(0 8 18 / 0.28), inset 0 1px 0 var(--glass-edge);
+    --accent: #3fd3ec;
+    --accent-text: #6be0f3;
+  }
+}
+body {
+  background: radial-gradient(ellipse at 90% 10%, var(--bg-glow), transparent 55%), var(--bg);
+  background-attachment: fixed;
+}
+.topbar {
+  top: 1rem;
+  margin: 1rem auto 0;
+  width: calc(100% - 2 * var(--gutter));
+  max-width: 78rem;
+  min-height: 4.5rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--glass-edge);
+  border-radius: 1.6rem;
+  box-shadow: var(--glass-shadow);
+}
+.topbar, .hintbar, .panel, .game-row, .save-row, .main-play .actions {
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+.brand { font-size: 1.05rem; letter-spacing: -0.035em; }
+.topnav { padding: 0.25rem; border-radius: 1rem; background: var(--surface-2); }
+.topnav a { min-height: 2.75rem; display: flex; align-items: center; border-radius: 0.8rem; }
+.topnav a.active { background: var(--surface); box-shadow: 0 2px 8px var(--border); color: var(--text); }
+.main { padding-top: 2.75rem; }
+.launcher-intro { margin-bottom: 2rem; }
+.launcher-intro h1 { font-size: clamp(2.4rem, 5vw, 4rem); letter-spacing: -0.055em; line-height: 1.05; }
+.launcher-intro > p:last-child { color: var(--muted); margin: 0.8rem 0 0; font-size: 1rem; }
+.section-title { letter-spacing: -0.035em; font-size: 1.4rem; }
+.launcher { gap: 2.5rem; }
+.recent { --row-height: clamp(15rem, 28vw, 21rem); }
+.recent-row { gap: 1.25rem; padding-bottom: 1.5rem; }
+.recent-item { grid-template-rows: 1.8rem var(--row-height); }
+.recent-item-featured { width: min(calc(var(--row-height) * 1.65), calc(100vw - 2 * var(--gutter) - 1rem)); }
+.recent-item-featured:only-child { width: 100%; }
+.cover { box-shadow: inset 0 1px 0 var(--glass-edge); }
+.cover-core { top: 1rem; left: 1rem; padding: 0.3rem 0.6rem; }
+.cover-title { inset: auto 1rem 1.1rem; letter-spacing: -0.035em; }
+.featured-text { padding: 1.5rem; gap: 0.4rem; }
+.featured-title { font-size: clamp(1.7rem, 3.5vw, 2.8rem); letter-spacing: -0.045em; }
+.featured-description { max-width: 36ch; font-size: 0.9rem; line-height: 1.5; }
+.featured-open { justify-self: start; margin-top: 0.65rem; padding: 0.5rem 0.85rem; border: 1px solid var(--glass-edge); border-radius: 999px; background: rgb(0 0 0 / 0.25); font-size: 0.8rem; font-weight: 600; }
+.library-bar { gap: 0.75rem; margin-bottom: 1.5rem; }
+.library-grid { grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 1.75rem 1.25rem; }
+.card-meta { margin-top: 0.7rem; padding-inline: 0.5rem; }
+.search { min-height: 2.75rem; background: var(--surface-glass); }
+.view-toggle { background: var(--surface-2); border: 0; }
+.icon-button { min-width: 2.75rem; min-height: 2.75rem; }
+button, .button, .account { min-height: 2.75rem; touch-action: manipulation; }
+.panel, .game-row, .save-row { border-color: var(--glass-edge); box-shadow: var(--glass-shadow); }
+.game-row, .save-row { padding: 1rem; }
+.app { padding-bottom: calc(var(--hintbar-height) + 3rem); }
+@media (max-width: 40rem) {
+  .topbar { top: 0.5rem; margin-top: 0.5rem; padding: 0.6rem; border-radius: 1.3rem; }
+  .topnav { margin: 0; }
+  .topnav a { flex: 1; justify-content: center; }
+  .main { padding-top: 2rem; }
+  .launcher-intro { margin-bottom: 1.5rem; }
+  .recent { --row-height: 17rem; }
+  .featured-text { padding: 1.15rem; }
+  .featured-description { display: none; }
+  .library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 0.85rem; }
+  .hintbar { padding-inline: 0.85rem; }
+  .hintbar-list { min-width: 0; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .topbar, .hintbar, .panel, .game-row, .save-row, .main-play .actions { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; border-color: var(--text); }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .topbar, .hintbar, .panel, .game-row, .save-row { background: var(--surface); }
+}
+
+/* Shared motion: short feedback, reversible transitions, no input delays. */
+:root {
+  --motion-press: 90ms;
+  --motion-control: 160ms;
+  --motion-surface: 240ms;
+}
+button, .button, .account, .topnav a, .back-link, .game-row, .game-card {
+  transition: transform var(--motion-control) var(--ease-settle),
+    background-color var(--motion-control) ease,
+    color var(--motion-control) ease,
+    border-color var(--motion-control) ease,
+    box-shadow var(--motion-control) ease;
+}
+input, select, .search, .view-toggle {
+  transition: background-color var(--motion-control) ease,
+    border-color var(--motion-control) ease,
+    box-shadow var(--motion-control) ease;
+}
+.game-card:focus-visible { transform: none; }
+.game-card .cover { transition: box-shadow var(--motion-control) ease; }
+button:active:not(:disabled), .button:active, .account:active,
+.topnav a:active, .back-link:active, .game-row:active, .game-card:active {
+  transform: scale(0.98);
+  transition-duration: var(--motion-press);
+}
+@media (hover: hover) and (pointer: fine) {
+  .game-card:hover { transform: translateY(-3px); }
+  .game-card:active { transform: scale(0.98); }
+}
+@media (hover: none), (pointer: coarse) {
+  .game-card:hover { transform: none; }
+  .game-card:active { transform: scale(0.98); }
+}
+/* Entry fades progressively enhance asynchronously loaded content. */
+.detail-hero, .detail-saves, .save-group, .panel, .empty, .error,
+.library-grid, .library-list, .recent {
+  transition: opacity var(--motion-control) ease;
+}
+@starting-style {
+  .detail-hero, .detail-saves, .save-group, .panel, .empty, .error,
+  .library-grid, .library-list, .recent { opacity: 0; }
+}
+/* Keyboard focus always appears immediately; shortcuts never wait for motion. */
+html[data-input='keyboard'] *, html[data-input='keyboard'] *::before,
+html[data-input='keyboard'] *::after { transition: none !important; }
+html[data-input='keyboard'] .game-card:focus-visible { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .game-card:hover, .game-card:active, .game-card:focus-visible,
+  button:active:not(:disabled), .button:active, .account:active,
+  .topnav a:active, .back-link:active, .game-row:active { transform: none; }
 }

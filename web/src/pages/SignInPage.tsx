@@ -28,8 +28,12 @@ export default function SignInPage() {
 
   if (user) {
     return (
-      <>
+      <div className="panel panel-narrow">
+        <span className="avatar avatar-large" aria-hidden="true">
+          {user.username.slice(0, 1).toUpperCase()}
+        </span>
         <h1>Signed in as {user.username}</h1>
+        <p className="muted">Your saves follow you to any device you sign in on.</p>
         <button
           type="button"
           onClick={() => {
@@ -39,15 +43,18 @@ export default function SignInPage() {
         >
           Sign out
         </button>
-      </>
+      </div>
     )
   }
 
   const label = mode === 'login' ? 'Sign in' : 'Create account'
 
   return (
-    <>
+    <div className="panel panel-narrow">
       <h1>{label}</h1>
+      <p className="muted">
+        {mode === 'login' ? 'Pick up where you left off.' : 'Save your progress and resume anywhere.'}
+      </p>
       <form className="form" onSubmit={handleSubmit}>
         <label>
           Username
@@ -71,12 +78,16 @@ export default function SignInPage() {
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" className="primary" disabled={busy}>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="primary button-large" disabled={busy}>
           {label}
         </button>
       </form>
-      <p className="muted">
+      <p className="muted switch-mode">
         {mode === 'login' ? 'No account yet? ' : 'Already have an account? '}
         <button
           type="button"
@@ -86,6 +97,6 @@ export default function SignInPage() {
           {mode === 'login' ? 'Create one' : 'Sign in'}
         </button>
       </p>
-    </>
+    </div>
   )
 }

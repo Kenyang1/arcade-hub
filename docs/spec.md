@@ -238,3 +238,7 @@ Each box is one non-functional requirement, proven live. Tick them off during M5
 - [ ] **Scalability:** during a 20-client load test, the API scales from 1 to 3 replicas with no errors (Khoi)
 - [ ] **RESTful design:** Postman collection passes on every endpoint (Soham)
 - [ ] **Security:** credentials only in Kubernetes Secrets; passwords stored as salted hashes (Soham)
+
+### Launcher presentation
+
+The launcher uses original genre-based cover templates, selected automatically for imported games, with a deterministic game-ID fallback for unmatched genres. This is client presentation only; the game contract does not store a cover selection. Page and backdrop transitions honor reduced-motion preferences, and keyboard navigation remains immediate.
