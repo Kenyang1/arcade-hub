@@ -34,6 +34,17 @@ spec:
               value: "mongodb://mongo:27017"
             - name: MONGO_DB
               value: "arcadehub"
+            # Sign-in lands in M3. Until then the cluster plays requests with no
+            # token as the stand-in account, which is what the Nov 15 check runs
+            # on (see docs/spec.md). Remove both once accounts exist.
+            - name: ALLOW_STAND_IN_USER
+              value: "true"
+            - name: JWT_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: arcade-secrets
+                  key: JWT_SIGNING_KEY
+                  optional: true
 
           resources:
             requests:

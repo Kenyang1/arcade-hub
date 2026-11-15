@@ -89,6 +89,25 @@ export const SaveSchema = z.object({
 })
 export type Save = z.infer<typeof SaveSchema>
 
+/** Query string of GET /api/saves: the signed-in player's saves, optionally for one game. */
+export const SaveQuerySchema = z.object({
+  gameId: z.string().optional(),
+})
+export type SaveQuery = z.infer<typeof SaveQuerySchema>
+
+/**
+ * Fields of POST /api/sessions/{id}/saves. The request is multipart form data:
+ * these fields, plus the state itself as a file part named `state`.
+ * The response is a `Save`.
+ */
+export const SaveUploadFieldsSchema = z.object({
+  kind: SaveKindSchema,
+})
+export type SaveUploadFields = z.infer<typeof SaveUploadFieldsSchema>
+
+/** Name of the multipart file part that carries the save state. */
+export const SAVE_STATE_FIELD = 'state'
+
 export const UserSchema = z.object({
   id: z.string(),
   username: z.string(),

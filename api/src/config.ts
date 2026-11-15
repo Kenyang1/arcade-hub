@@ -14,6 +14,21 @@ export const config = {
   mongoDb: process.env.MONGO_DB ?? 'arcadehub',
   /** How long the driver waits for a reachable server before giving up. */
   mongoTimeoutMs: 3000,
+  /**
+   * ALLOW_STAND_IN_USER: a request with no token plays as the stand-in account
+   * (see core/auth.ts). Off unless a deployment sets it: it is what keeps the
+   * Nov 15 save-state check working on the cluster before sign-in lands in M3.
+   */
+  allowStandInUser: process.env.ALLOW_STAND_IN_USER === 'true',
+  /** Sign-in (M3): the key bearer tokens are signed with, and the issuer they must carry. */
+  jwtSigningKey: process.env.JWT_SIGNING_KEY ?? '',
+  jwtIssuer: process.env.JWT_ISSUER ?? 'arcade-hub',
+  /** SEED_DEV_USERS: create dev-player and dev-player2 on startup, in development only. */
+  seedDevUsers: process.env.SEED_DEV_USERS === 'true',
+  /** No fallback in code: a seeded account's password comes from the environment. */
+  seedDevPassword: process.env.SEED_DEV_PASSWORD ?? '',
+  /** Largest save state accepted, in bytes. EmulatorJS states are far smaller than game files. */
+  maxSaveStateBytes: 10 * 1024 * 1024,
   /** Gemini API key from Google AI Studio (free tier). Empty turns the AI features off. */
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
   /** The Gemini model that reads game frames. Pick one in AI Studio that takes images. */
