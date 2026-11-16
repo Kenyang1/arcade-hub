@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router'
 import Layout from './components/Layout.tsx'
 import CatalogPage from './pages/CatalogPage.tsx'
 import GameDetailsPage from './pages/GameDetailsPage.tsx'
+import GameFormPage from './pages/GameFormPage.tsx'
 import MySavesPage from './pages/MySavesPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 import PlayPage from './pages/PlayPage.tsx'
@@ -12,7 +13,9 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<CatalogPage />} />
+        <Route path="games/new" element={<GameFormPage />} />
         <Route path="games/:gameId" element={<GameDetailsPage />} />
+        <Route path="games/:gameId/edit" element={<GameFormPage />} />
         <Route path="play/:gameId" element={<PlayPage />} />
         <Route path="saves" element={<MySavesPage />} />
         <Route path="sign-in" element={<SignInPage />} />

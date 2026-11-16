@@ -34,6 +34,9 @@ export default function GameDetailsPage() {
     p: () => {
       if (game) navigate(`/play/${game.id}`)
     },
+    e: () => {
+      if (game) navigate(`/games/${game.id}/edit`)
+    },
     Escape: () => navigate('/'),
   })
 
@@ -70,6 +73,9 @@ export default function GameDetailsPage() {
           <div className="actions">
             <Link to={`/play/${game.id}`} className="button primary button-large">
               <span aria-hidden="true">▶</span> Play
+            </Link>
+            <Link to={`/games/${game.id}/edit`} className="button button-large">
+              Edit
             </Link>
           </div>
         </div>

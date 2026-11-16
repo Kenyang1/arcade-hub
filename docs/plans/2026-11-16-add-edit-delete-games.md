@@ -52,13 +52,15 @@ twice); `window.confirm` for delete (blocks the page, can't be styled).
 
 ## Steps
 
-- [ ] Commit this plan.
-- [ ] `GameFormPage.tsx` with add and edit modes, validation and errors;
+- [x] Commit this plan.
+- [x] `GameFormPage.tsx` with add and edit modes, validation and errors;
       routes in `App.tsx`; hint bar entries in `Layout.tsx`.
-- [ ] Delete with inline confirmation on the edit page.
-- [ ] Entry points: "Add a game" on `CatalogPage.tsx`, Edit on
-      `GameDetailsPage.tsx`; styles in `index.css`.
+- [x] Delete with inline confirmation on the edit page.
+- [x] Entry points: "Add a game" on `CatalogPage.tsx`, Edit (and the `E` key)
+      on `GameDetailsPage.tsx`; styles in `index.css`.
 - [ ] Unit tests for the file-extension check (`web/src/lib/gameFile.ts`).
+      Waits for PR 27, which adds Vitest to `web/`; adding it here too would
+      conflict in `web/package.json` and the lockfile.
 
 No step changes `packages/contracts` or an `api.ts` signature.
 
@@ -69,6 +71,7 @@ No step changes `packages/contracts` or an `api.ts` signature.
 | One page for add and edit | Same fields, one place to fix | Two pages |
 | Inline delete confirmation | Keyboard- and phone-friendly | `window.confirm`, modal |
 | File required only on add | `updateGame` takes no file | Replacing the file on edit (needs a contract change) |
+| Unit tests after PR 27 | PR 27 brings Vitest; two PRs adding it would conflict | Adding Vitest in this PR |
 
 ## Out of scope
 
