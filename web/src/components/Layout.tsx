@@ -1,6 +1,6 @@
 import { usePageMotion } from '../lib/usePageMotion.ts'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
-import { getCurrentUser } from '../lib/api.ts'
+import { useCurrentUser } from '../lib/useCurrentUser.ts'
 import HintBar, { type Hint } from './HintBar.tsx'
 
 const MOVE: Hint = { keys: ['Tab'], label: 'Move' }
@@ -47,7 +47,7 @@ function BrandMark() {
 export default function Layout() {
   const { pathname } = useLocation()
   const mainRef = usePageMotion(pathname)
-  const user = getCurrentUser()
+  const user = useCurrentUser()
   const isPlay = pathname.startsWith('/play/')
   return (
     <div className="app">

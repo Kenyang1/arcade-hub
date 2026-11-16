@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router'
 import Backdrop from '../components/Backdrop.tsx'
 import GameCard from '../components/GameCard.tsx'
-import { errorMessage, getCurrentUser, listGames, listSaves } from '../lib/api.ts'
+import { errorMessage, listGames, listSaves } from '../lib/api.ts'
 import { dateGroup, relativeTime } from '../lib/time.ts'
 import type { Game, Save } from '../lib/types.ts'
+import { useCurrentUser } from '../lib/useCurrentUser.ts'
 import { useShortcuts } from '../lib/useShortcuts.ts'
 
 type SortKey = 'title' | 'newest' | 'genre'
@@ -152,7 +153,7 @@ function ListIcon() {
 
 export default function CatalogPage() {
   const navigate = useNavigate()
-  const signedIn = getCurrentUser() !== null
+  const signedIn = useCurrentUser() !== null
   const [search, setSearch] = useState('')
   // The search the API last got. It trails `search` until typing pauses, so
   // typing a title sends one request, not one per key.

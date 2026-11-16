@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
-import { errorMessage, getCurrentUser, login, register, signOut } from '../lib/api.ts'
+import { Link, useNavigate, useSearchParams } from 'react-router'
+import { errorMessage, login, register, signOut } from '../lib/api.ts'
+import { nextPath } from '../lib/nextPath.ts'
+import { useCurrentUser } from '../lib/useCurrentUser.ts'
 
 export default function SignInPage() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(getCurrentUser)
+  const [searchParams] = useSearchParams()
+  const next = nextPath(searchParams.get('next'))
+  const user = useCurrentUser()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -17,8 +21,9 @@ export default function SignInPage() {
     setError(null)
     try {
       const signIn = mode === 'login' ? login : register
-      await signIn({ username, password })
-      navigate('/')
+      await signIn({ username: username.trim(), password })
+      setPassword('')
+      navigate(next, { replace: true })
     } catch (reason) {
       setError(errorMessage(reason))
     } finally {
@@ -34,12 +39,12 @@ export default function SignInPage() {
         </span>
         <h1>Signed in as {user.username}</h1>
         <p className="muted">Your saves follow you to any device you sign in on.</p>
+        <Link to="/saves" className="button primary">
+          My Saves
+        </Link>
         <button
           type="button"
-          onClick={() => {
-            signOut()
-            setUser(null)
-          }}
+          onClick={signOut}
         >
           Sign out
         </button>
@@ -92,7 +97,10 @@ export default function SignInPage() {
         <button
           type="button"
           className="link"
-          onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+          onClick={() => {
+            setMode(mode === 'login' ? 'register' : 'login')
+            setError(null)
+          }}
         >
           {mode === 'login' ? 'Create one' : 'Sign in'}
         </button>

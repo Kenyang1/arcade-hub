@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import GameCover from '../components/GameCover.tsx'
-import { errorMessage, getCurrentUser, listGames, listSaves } from '../lib/api.ts'
+import { ApiError, errorMessage, listGames, listSaves } from '../lib/api.ts'
+import { signInLink } from '../lib/nextPath.ts'
 import { dateGroup, savedAt } from '../lib/time.ts'
 import type { Game, Save } from '../lib/types.ts'
+import { useCurrentUser } from '../lib/useCurrentUser.ts'
+
+// M3: the signed-in player's saves from GET /api/saves, newest first, on any
+// device they sign in on. Resume opens the Play page with ?saveId=.
 
 export default function MySavesPage() {
-  const userId = getCurrentUser()?.id
-  const [saves, setSaves] = useState<Save[] | null>(null)
+  const userId = useCurrentUser()?.id
+  // Tagged with the account they belong to, so another account's saves or
+  // errors never show after signing in as someone else.
+  const [loaded, setLoaded] = useState<{ userId: string; saves: Save[] } | null>(null)
   const [games, setGames] = useState<Map<string, Game>>(new Map())
-  const [error, setError] = useState<string | null>(null)
+  // `for` is null when the error signed the player out (an expired sign-in).
+  const [failure, setFailure] = useState<{ for: string | null; message: string } | null>(null)
 
   useEffect(() => {
     if (!userId) return
@@ -17,23 +25,37 @@ export default function MySavesPage() {
     Promise.all([listSaves(), listGames()])
       .then(([loadedSaves, loadedGames]) => {
         if (cancelled) return
-        setSaves(loadedSaves)
+        setLoaded({ userId, saves: loadedSaves })
         setGames(new Map(loadedGames.map((game) => [game.id, game])))
+        setFailure(null)
       })
       .catch((reason: unknown) => {
-        if (!cancelled) setError(errorMessage(reason))
+        // A 401 also signs out, which cancels this effect; still say why.
+        if (reason instanceof ApiError && reason.status === 401) {
+          setFailure({ for: null, message: errorMessage(reason) })
+        } else if (!cancelled) {
+          setFailure({ for: userId, message: errorMessage(reason) })
+        }
       })
     return () => {
       cancelled = true
     }
   }, [userId])
 
+  const saves = userId && loaded?.userId === userId ? loaded.saves : null
+  const error = failure && failure.for === (userId ?? null) ? failure.message : null
+
   if (!userId) {
     return (
       <div className="panel">
         <h1>My Saves</h1>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
         <p>Sign in to see your saves on any device.</p>
-        <Link to="/sign-in" className="button primary">
+        <Link to={signInLink('/saves')} className="button primary">
           Sign in
         </Link>
       </div>
