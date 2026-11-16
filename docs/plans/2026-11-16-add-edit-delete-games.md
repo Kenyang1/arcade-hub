@@ -4,7 +4,7 @@
 - **Owner:** Kenyang
 - **Milestone:** M2 (carried over; the M2 exit check is "add, edit and delete a game in the browser against the cluster")
 - **Date:** 2026-11-16
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/29
 
 ## Goal
 
