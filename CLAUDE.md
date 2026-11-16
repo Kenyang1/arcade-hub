@@ -73,6 +73,7 @@ pnpm --dir api jobs prune-autosaves
 pnpm --dir web lint
 pnpm --dir web typecheck
 pnpm --dir web build
+pnpm --dir web test                  # Vitest unit tests (not in CI yet)
 pnpm --dir packages/contracts typecheck
 pnpm --dir api lint
 pnpm --dir api typecheck

@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "oxlint --deny-warnings",
     "typecheck": "tsc -b",
-    "emulator:fetch": "node scripts/fetch-emulator.mjs"
+    "emulator:fetch": "node scripts/fetch-emulator.mjs",
+    "test": "vitest run"
   },
   "config": {
     "emulatorjs": {
@@ -35,6 +36,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.89.0",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   }
 }
