@@ -4,7 +4,7 @@
 - **Owner:** Kenyang
 - **Milestone:** M3 Save and resume (exit check Sun Nov 22)
 - **Date:** 2026-11-15
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/27
 
 ## Goal
 A player creates an account or signs in, plays, and the Play page autosaves
