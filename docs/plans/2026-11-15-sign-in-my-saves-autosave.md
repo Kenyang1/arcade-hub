@@ -55,18 +55,18 @@ until Soham merges (the Nov 22 check needs real accounts, and the 404 message
 keeps `main` usable meanwhile).
 
 ## Steps
-- [ ] `docs/plans/`: this plan (first commit).
-- [ ] `api.ts`: real `login`, `register` (POST `/api/auth/*`), `listSaves`
+- [x] `docs/plans/`: this plan (first commit).
+- [x] `api.ts`: real `login`, `register` (POST `/api/auth/*`), `listSaves`
   (GET `/api/saves`), `getSession` (GET `/api/sessions/{id}`); auth-change store;
   401 with a token signs out. **Assumes** Soham's routes answer 401 for a wrong
   username or password, 409 for a taken username, 400 with `errors` for bad
   input, and 201 or 200 with `AuthResponse`.
-- [ ] `lib/useCurrentUser.ts`; `Layout.tsx`, `SignInPage.tsx`, `MySavesPage.tsx`
+- [x] `lib/useCurrentUser.ts`; `Layout.tsx`, `SignInPage.tsx`, `MySavesPage.tsx`
   use it. Sign in returns to `?next=` (for example from My Saves).
-- [ ] `MySavesPage.tsx`: real list, signed-out and expired-sign-in states.
-- [ ] `lib/autosave.ts` + `PlayPage.tsx`: autosave every 60 s; a "Sign in to keep
+- [x] `MySavesPage.tsx`: real list, signed-out and expired-sign-in states.
+- [x] `lib/autosave.ts` + `PlayPage.tsx`: autosave every 60 s; a "Sign in to keep
   your saves" link when the API says the player isn't signed in.
-- [ ] Web unit tests with Vitest (`pnpm --dir web test`): autosave timer, auth
+- [x] Web unit tests with Vitest (`pnpm --dir web test`): autosave timer, auth
   calls, 401 sign-out, saves query string.
 
 ## Decisions
@@ -77,6 +77,8 @@ keeps `main` usable meanwhile).
 | Drop the token on any 401 that carried one | Expired or fake tokens otherwise block every save | Retrying silently as the stand-in user |
 | Autosave skips while a save is uploading | Two uploads of the same moment waste GridFS space | Queuing them |
 | Add Vitest to `web/` | The timer and auth rules need tests; the API already uses Vitest | Testing only by hand |
+| `?next=` only accepts a path in this app | A link can't send a player to another site after they type their password | Any URL |
+| Auth state in localStorage plus a change event | Every tab, a reload, and the top bar agree on who's signed in | React context only, which other tabs can't see |
 
 ## Out of scope
 Soham's `/api/auth/*` routes; the last autosave on tab close and Pause/Resume
@@ -85,7 +87,9 @@ to CI (`.github/` is Khoi's, so it's a note for him); removing Export and Load
 state.
 
 ## Verification
-- `pnpm --dir web lint`, `typecheck`, `test` and `build` pass.
+- `pnpm --dir web lint`, `typecheck`, `test` and `build` pass (22 web tests).
+- Not yet clicked through in a browser against the real API: Soham's auth routes
+  aren't on `main`, and the autosave needs a running game.
 - Before Soham's routes: Create account shows "Accounts aren't switched on on
   the server yet"; playing and saving still work through the stand-in account.
 - After Soham's routes: create an account, play for over a minute, and the page
