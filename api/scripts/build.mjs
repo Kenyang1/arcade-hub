@@ -14,6 +14,18 @@ await build({
   target: 'node22',
   format: 'esm',
   sourcemap: true,
-  external: ['express', 'mongodb', 'pino', 'swagger-ui-express', 'zod'],
+  // CommonJS packages that use require() inside (jsonwebtoken, multer) can't be
+  // bundled into ESM output: the built server would crash on start. Keep every
+  // installed package external, and add new ones here as they arrive.
+  external: [
+    '@google/genai',
+    'express',
+    'jsonwebtoken',
+    'mongodb',
+    'multer',
+    'pino',
+    'swagger-ui-express',
+    'zod',
+  ],
   logLevel: 'info',
 })

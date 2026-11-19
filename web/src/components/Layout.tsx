@@ -19,8 +19,14 @@ function hintsFor(pathname: string): Hint[] {
       { keys: ['V'], label: 'View' },
     ]
   }
+  if (pathname === '/games/new') {
+    return [MOVE, SELECT, { keys: ['Esc'], label: 'Library' }]
+  }
+  if (pathname.startsWith('/games/') && pathname.endsWith('/edit')) {
+    return [MOVE, SELECT, { keys: ['Esc'], label: 'Back' }]
+  }
   if (pathname.startsWith('/games/')) {
-    return [MOVE, SELECT, { keys: ['P'], label: 'Play' }, { keys: ['Esc'], label: 'Library' }]
+    return [MOVE, SELECT, { keys: ['P'], label: 'Play' }, { keys: ['E'], label: 'Edit' }, { keys: ['Esc'], label: 'Library' }]
   }
   if (pathname.startsWith('/play/')) {
     return [

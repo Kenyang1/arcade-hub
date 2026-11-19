@@ -1240,3 +1240,62 @@ html[data-input='keyboard'] .game-card:focus-visible { transform: none; }
   button:active:not(:disabled), .button:active, .account:active,
   .topnav a:active, .back-link:active, .game-row:active { transform: none; }
 }
+
+/* ---- Add, edit and delete a game (GameFormPage) ------------------------- */
+
+textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+  min-width: 0;
+}
+textarea:focus-visible {
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+.form select,
+.form input[type='file'] {
+  font-weight: 400;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.9rem;
+}
+.form .hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+.form .actions {
+  margin-top: 0.25rem;
+}
+.launcher-intro .button {
+  margin-top: 1rem;
+  gap: 0.4rem;
+}
+button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+button.danger:hover:not(:disabled),
+button.danger:focus-visible {
+  background: var(--danger-soft);
+}
+.danger-zone {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.danger-zone h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+.danger-zone p {
+  margin: 0 0 0.75rem;
+}
