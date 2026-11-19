@@ -22,7 +22,9 @@ the browser. Today the only way in is `import-games` from a terminal.
   won't show in the catalog until the endpoints land. The pages are built and
   checked against the mocks; nothing in them changes when the backend lands.
 - `GameInput` in `packages/contracts`: `title`, `description`, `genre`,
-  `core` (`nes`, `snes`, `gb`, `gba`). No contract change is needed.
+  `core` (`nes`, `snes`, `gb`, `gba`). Those shapes are unchanged; the
+  multipart field name joins the contract as `GAME_FILE_FIELD = 'file'`
+  (2026-11-19), which is a contract change and needs both reviewers.
 - Errors per CLAUDE.md: 400 invalid input, 401 not signed in, 403 not yours,
   404 not found, 409 duplicate title. `errorMessage` turns them into text.
 - Routes live in `web/src/App.tsx`; the hint bar in `Layout.tsx` lists
@@ -63,7 +65,8 @@ twice); `window.confirm` for delete (blocks the page, can't be styled).
       Waits for PR 27, which adds Vitest to `web/`; adding it here too would
       conflict in `web/package.json` and the lockfile.
 
-No step changes `packages/contracts` or an `api.ts` signature.
+The backend step (2026-11-19) added `GAME_FILE_FIELD` to `packages/contracts`.
+No `api.ts` signature changed: only the three bodies became real calls.
 
 ## Decisions
 
@@ -85,8 +88,9 @@ No step changes `packages/contracts` or an `api.ts` signature.
 - `pnpm --dir web lint`, `typecheck`, `test`, `build`.
 - `pnpm --dir web dev`, sign in, then: Add a game with an empty title (message,
   no call); with a `.gba` file for console NES (message); with a valid
-  `.nes` file (goes to the new game's page, which says "not available" until
-  `POST /api/games` lands, because `getGame` is already real). Open a game, Edit, change the genre, Save. Edit,
-  Delete, Cancel (nothing happens), Delete, Delete game (back to the library).
+  `.nes` file (goes to the new game's page, which now shows it). Open a game,
+  Edit, change the genre, Save. Edit, Delete, Cancel (nothing happens), Delete,
+  Delete game (back to the library).
 - Whole flow with Tab, Enter and Esc only; at 400 px wide.
-- Once Soham's endpoints land: the M2 exit check on the cluster.
+- The M2 exit check on the cluster: add, edit and delete a game from the
+  browser against the cluster.
