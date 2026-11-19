@@ -1,10 +1,10 @@
 # Save to the API from the Play page and resume in a fresh tab
 
-- **Status:** in progress
+- **Status:** done
 - **Owner:** Kenyang
 - **Milestone:** M2 Catalog management and sessions (save-state check Nov 15)
 - **Date:** 2026-11-12
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/16
 
 ## Goal
 Opening a game starts a session through the API and keeps it alive with a
@@ -49,7 +49,7 @@ a fresh tab, so the check could only be tried after both PRs land.
   session on leave.
 - [x] `PlayPage.tsx`: Save button uploads a manual save and offers "Resume in a
   new tab"; `?saveId=` resumes from that save.
-- [ ] Remove Export state and Load state once the Nov 15 check passes (follow-up).
+- [ ] Remove Export state and Load state once the Nov 15 check passes (follow-up, not done yet: the Play page still has both buttons).
 
 ## Decisions
 | Decision | Why | Rejected |

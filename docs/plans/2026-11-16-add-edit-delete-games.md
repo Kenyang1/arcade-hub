@@ -1,6 +1,6 @@
 # Add, edit and delete games in the browser
 
-- **Status:** in progress
+- **Status:** done
 - **Owner:** Kenyang
 - **Milestone:** M2 (carried over; the M2 exit check is "add, edit and delete a game in the browser against the cluster")
 - **Date:** 2026-11-16
@@ -62,8 +62,8 @@ twice); `window.confirm` for delete (blocks the page, can't be styled).
 - [x] Entry points: "Add a game" on `CatalogPage.tsx`, Edit (and the `E` key)
       on `GameDetailsPage.tsx`; styles in `index.css`.
 - [ ] Unit tests for the file-extension check (`web/src/lib/gameFile.ts`).
-      Waits for PR 27, which adds Vitest to `web/`; adding it here too would
-      conflict in `web/package.json` and the lockfile.
+      Follow-up, not done yet. Was waiting for PR 27, which adds Vitest to `web/`; adding it here too would
+      conflict in `web/package.json` and the lockfile. PR 27 is merged, so this can land now.
 
 The backend step (2026-11-19) added `GAME_FILE_FIELD` to `packages/contracts`.
 No `api.ts` signature changed: only the three bodies became real calls.

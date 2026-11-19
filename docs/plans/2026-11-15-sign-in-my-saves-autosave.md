@@ -1,6 +1,6 @@
 # Real sign-in, My Saves from the API, and autosave every 60 s
 
-- **Status:** in progress
+- **Status:** done
 - **Owner:** Kenyang
 - **Milestone:** M3 Save and resume (exit check Sun Nov 22)
 - **Date:** 2026-11-15
