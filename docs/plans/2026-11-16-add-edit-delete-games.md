@@ -1,0 +1,92 @@
+# Add, edit and delete games in the browser
+
+- **Status:** in progress
+- **Owner:** Kenyang
+- **Milestone:** M2 (carried over; the M2 exit check is "add, edit and delete a game in the browser against the cluster")
+- **Date:** 2026-11-16
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/29
+
+## Goal
+
+A signed-in player can add a game to the catalog (title, description, genre,
+console and the game file), fix its details later, and remove it, all from
+the browser. Today the only way in is `import-games` from a terminal.
+
+## Context
+
+- `api.ts` already has `createGame(input, file)`, `updateGame(id, input)` and
+  `deleteGame(id)` with the final signatures. They return mocks: the API has no
+  `POST`, `PUT` or `DELETE /api/games` yet (Soham's M2 work).
+- `listGames` and `getGame` are real calls, so a game "added" through the mock
+  won't show in the catalog until the endpoints land. The pages are built and
+  checked against the mocks; nothing in them changes when the backend lands.
+- `GameInput` in `packages/contracts`: `title`, `description`, `genre`,
+  `core` (`nes`, `snes`, `gb`, `gba`). No contract change is needed.
+- Errors per CLAUDE.md: 400 invalid input, 401 not signed in, 403 not yours,
+  404 not found, 409 duplicate title. `errorMessage` turns them into text.
+- Routes live in `web/src/App.tsx`; the hint bar in `Layout.tsx` lists
+  shortcuts per path. Styles are in `web/src/index.css` (`.panel`, `.form`).
+
+## Approach
+
+One form page, `GameFormPage.tsx`, serves two routes: `/games/new` (empty
+form plus a game-file picker) and `/games/:gameId/edit` (form filled from
+`getGame`, no file picker, since `updateGame` takes no file). The edit page
+also has a Delete section: clicking Delete shows an inline "Delete <title>?
+This can't be undone" with Delete game and Cancel buttons. No `window.confirm`,
+so it works the same with the keyboard and on a phone.
+
+Client checks before any call: title, genre and console are required; on add,
+a file is required and its extension must match the console (`.nes`; `.sfc`
+or `.smc`; `.gb` or `.gbc`; `.gba`). The server still validates everything.
+Signed-out players see "Sign in to add or edit games" with a link that comes
+back to the form.
+
+After add or edit the page goes to the game's details page; after delete, to
+the library. Entry points: an "Add a game" link in the library header, and an
+Edit link on the details page.
+
+Rejected: a modal dialog over the catalog (harder to reach from a link, and
+focus handling for little gain); separate add and edit pages (the same fields
+twice); `window.confirm` for delete (blocks the page, can't be styled).
+
+## Steps
+
+- [x] Commit this plan.
+- [x] `GameFormPage.tsx` with add and edit modes, validation and errors;
+      routes in `App.tsx`; hint bar entries in `Layout.tsx`.
+- [x] Delete with inline confirmation on the edit page.
+- [x] Entry points: "Add a game" on `CatalogPage.tsx`, Edit (and the `E` key)
+      on `GameDetailsPage.tsx`; styles in `index.css`.
+- [ ] Unit tests for the file-extension check (`web/src/lib/gameFile.ts`).
+      Waits for PR 27, which adds Vitest to `web/`; adding it here too would
+      conflict in `web/package.json` and the lockfile.
+
+No step changes `packages/contracts` or an `api.ts` signature.
+
+## Decisions
+
+| Decision | Why | Rejected |
+| --- | --- | --- |
+| One page for add and edit | Same fields, one place to fix | Two pages |
+| Inline delete confirmation | Keyboard- and phone-friendly | `window.confirm`, modal |
+| File required only on add | `updateGame` takes no file | Replacing the file on edit (needs a contract change) |
+| Unit tests after PR 27 | PR 27 brings Vitest; two PRs adding it would conflict | Adding Vitest in this PR |
+
+## Out of scope
+
+- The API endpoints themselves (Soham).
+- Replacing a game's file after it's added.
+- Who may edit or delete which game: the server decides; the page shows its
+  403 message.
+
+## Verification
+
+- `pnpm --dir web lint`, `typecheck`, `test`, `build`.
+- `pnpm --dir web dev`, sign in, then: Add a game with an empty title (message,
+  no call); with a `.gba` file for console NES (message); with a valid
+  `.nes` file (goes to the new game's page, which says "not available" until
+  `POST /api/games` lands, because `getGame` is already real). Open a game, Edit, change the genre, Save. Edit,
+  Delete, Cancel (nothing happens), Delete, Delete game (back to the library).
+- Whole flow with Tab, Enter and Esc only; at 400 px wide.
+- Once Soham's endpoints land: the M2 exit check on the cluster.

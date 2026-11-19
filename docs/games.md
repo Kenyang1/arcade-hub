@@ -10,7 +10,7 @@ outside the repo and are loaded with
 | Bomb Sweeper v0.5 | nes fceumm | Snowbro | Public Domain | https://www.nesworld.com/article.php?system=nes&data=neshomebrew_bestof |
 | Thwaite 0.03 | nes fceumm | Damian Yerrick | GPL-3.0 | https://github.com/pinobatch/thwaite-nes/blob/master/LICENSE.txt |
 | Concentration Room 0.02 | nes fceumm | Damian Yerrick | GPL-3.0, with an exception for sharing the ROM | https://github.com/pinobatch/croom-nes#legal |
-| RHDE: Furniture Fight | nes fceumm | Damian Yerrick | GNU All-Permissive | https://github.com/pinobatch/rhde-nes/blob/master/LICENSE.txt |
+| RHDE: Furniture Fight (day 342) | nes fceumm | Damian Yerrick | GPL-3.0-or-later. Most files are GNU All-Permissive, but the day 342 build's music engine (`src/music.s`) is GPL-3.0-or-later | https://pineight.com/nes/rhde-day342.zip |
 | Super Tilt Bro | nes fceumm | sgadrat | WTFPL | https://github.com/sgadrat/super-tilt-bro/blob/master/LICENSE |
 | Brick Breaker | nes fceumm | Aleff Correa | MIT | https://github.com/AleffCorrea/BrickBreaker/blob/master/LICENSE |
 | Sgt. Helmet's Training Day | nes fceumm | The Mojon Twins | Free to produce (authors' statement) | https://github.com/mojontwins/MK1_NES#license |

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import Backdrop from '../components/Backdrop.tsx'
 import GameCard from '../components/GameCard.tsx'
 import { errorMessage, listGames, listSaves } from '../lib/api.ts'
@@ -254,6 +254,9 @@ export default function CatalogPage() {
         <p className="eyebrow">Your next adventure</p>
         <h1>Time to play.</h1>
         <p>A little nostalgia. A new high score.</p>
+        <Link to="/games/new" className="button">
+          <span aria-hidden="true">+</span> Add a game
+        </Link>
       </header>
       <div className="launcher" onKeyDown={moveFocus}>
         {error && (
