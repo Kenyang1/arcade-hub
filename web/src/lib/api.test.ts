@@ -1,7 +1,19 @@
 // api.ts against a fake fetch: the auth calls, the 401 sign-out rule and the
 // saves list. No server and no browser: localStorage and window are stubbed.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getCurrentUser, getSession, getToken, listSaves, login, onAuthChange, register, signOut } from './api.ts'
+import {
+  EXIT_SAVE_MAX_BYTES,
+  getCurrentUser,
+  getSession,
+  getToken,
+  listSaves,
+  login,
+  onAuthChange,
+  register,
+  signOut,
+  updateSession,
+  uploadSaveOnExit,
+} from './api.ts'
 import type { AuthResponse } from './types.ts'
 
 const auth: AuthResponse = {
@@ -173,5 +185,63 @@ describe('saves and sessions', () => {
     fetchMock.mockResolvedValue(json(200, session))
     await expect(getSession('s1')).resolves.toEqual(session)
     expect(lastCall().url).toBe('/api/sessions/s1')
+  })
+})
+
+describe('pause, resume and the last autosave', () => {
+  const session = {
+    id: 's1',
+    userId: 'u1',
+    gameId: 'g1',
+    status: 'paused',
+    lastHeartbeatAt: '2026-11-19T00:00:00.000Z',
+    lastAutosaveId: null,
+  }
+
+  it('updateSession sends PATCH /api/sessions/{id} with the new status', async () => {
+    localStorage.setItem('arcade-hub.token', 'token-1')
+    fetchMock.mockResolvedValue(json(200, session))
+    await expect(updateSession('s1', { status: 'paused' })).resolves.toEqual(session)
+    const { url, init } = lastCall()
+    expect(url).toBe('/api/sessions/s1')
+    expect(init.method).toBe('PATCH')
+    expect(init.body).toBe(JSON.stringify({ status: 'paused' }))
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer token-1')
+  })
+
+  it('updateSession on an idle session passes the 409 message through', async () => {
+    fetchMock.mockResolvedValue(problem(409, 'That session went idle. Start a new game to keep playing.'))
+    await expect(updateSession('s1', { status: 'running' })).rejects.toMatchObject({
+      status: 409,
+      message: 'That session went idle. Start a new game to keep playing.',
+    })
+  })
+
+  it('uploadSaveOnExit posts an autosave with keepalive and the token', () => {
+    localStorage.setItem('arcade-hub.token', 'token-1')
+    fetchMock.mockResolvedValue(json(201, {}))
+    expect(uploadSaveOnExit('s1', new Uint8Array([1, 2, 3]))).toBe(true)
+    const { url, init } = lastCall()
+    expect(url).toBe('/api/sessions/s1/saves')
+    expect(init.method).toBe('POST')
+    expect(init.keepalive).toBe(true)
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer token-1')
+    const form = init.body as FormData
+    expect(form.get('kind')).toBe('autosave')
+    expect(form.get('state')).toBeInstanceOf(Blob)
+  })
+
+  it('uploadSaveOnExit skips an empty state and one too big for keepalive', () => {
+    expect(uploadSaveOnExit('s1', new Uint8Array())).toBe(false)
+    expect(uploadSaveOnExit('s1', new Uint8Array(EXIT_SAVE_MAX_BYTES + 1))).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('uploadSaveOnExit does not throw when the request fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    expect(uploadSaveOnExit('s1', new Uint8Array([1]))).toBe(true)
+    await vi.waitFor(() => expect(warn).toHaveBeenCalled())
+    warn.mockRestore()
   })
 })

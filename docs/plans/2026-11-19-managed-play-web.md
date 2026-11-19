@@ -36,9 +36,11 @@ uploads an autosave of the paused spot, so nothing is lost if the player
 walks away. Resume reports `running`, then resumes EmulatorJS.
 
 When a heartbeat, save or status change answers 409, the page reads the
-session (`getSession`) and shows its real status. An idle session offers
-"Resume from your last autosave", a link to `/play/{gameId}?saveId=...`,
-which starts a new session the way resuming a save always does.
+session (`getSession`), pauses the game, and shows its real status. An idle
+or ended session offers "Keep playing from here": it starts a new session
+and saves the current spot to it at once. (Changed while building: the plan
+first had a link to resume from the last autosave, but the game is still in
+memory, so the current spot is newer than any autosave.)
 
 The last autosave has two cases:
 - **Leaving the page inside the app** (Back to game, the top bar): the page is
@@ -55,20 +57,22 @@ heartbeats while paused (a paused tab is still open, and idle means the page
 is gone).
 
 ## Steps
-- [ ] Plan (this file).
-- [ ] `api.ts`: `updateSession` calls `PATCH /api/sessions/{id}`. New
+- [x] Plan (this file).
+- [x] `api.ts`: `updateSession` calls `PATCH /api/sessions/{id}`. New
   `uploadSaveOnExit(sessionId, state)`: the autosave upload with `keepalive`,
   skipped when the state is over 60 KB. **New `api.ts` function**, no change
   to existing signatures or to `packages/contracts`. Tests in `api.test.ts`.
-- [ ] `PlayPage.tsx`: Pause and Resume button wired to `emulator` and
-  `updateSession`, with an autosave on pause. Session status badge. On a 409,
-  read the session and show idle or ended, with the resume link when idle.
-- [ ] `PlayPage.tsx`: the last autosave on leaving the page (upload, then end)
+- [x] `PlayPage.tsx`: Pause and Resume button wired to `emulator` and
+  `updateSession`, with an autosave on pause. Session status badge
+  (`index.css`). On a 409, read the session, pause, show idle or ended, and
+  offer "Keep playing from here". Save is disabled once the session is idle
+  or ended.
+- [x] `PlayPage.tsx`: the last autosave on leaving the page (upload, then end)
   and on `pagehide` (`uploadSaveOnExit`).
-- [ ] `web/src/lib/gameFile.test.ts`: unit tests for `gameFileProblem` and
+- [x] `web/src/lib/gameFile.test.ts`: unit tests for `gameFileProblem` and
   `extensionsFor` (the open step from `2026-11-16-add-edit-delete-games.md`).
-- [ ] `docs/spec.md`: the "Tab closes" row says the session is left to go
-  idle rather than ended.
+- [x] `docs/spec.md`: the save-state flow table covers pause, a 409, leaving
+  the page, and closing the tab (the session is left to go idle).
 
 ## Decisions
 | Decision | Why | Rejected |
@@ -76,6 +80,7 @@ is gone).
 | Tab close sends only the autosave, with `keepalive` | It needs the bearer token, and a `DELETE` in the same moment can beat the save to the server | `sendBeacon` (no auth header), ending the session too |
 | Pause uploads an autosave | The paused spot is safe even if the session later goes idle | Relying on the last 60 s autosave |
 | Heartbeats continue while paused | The tab is still open; idle is for a page that is gone or asleep | Stopping them, which would idle every long pause |
+| An idle or ended session offers "Keep playing from here" | The game is still in memory, so a new session with an autosave of the current spot loses nothing | A link to resume from the last autosave, which can be up to a minute older |
 
 ## Out of scope
 - Removing Export state and Load state (follow-up in
