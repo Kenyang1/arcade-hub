@@ -65,6 +65,92 @@ jobs:
           pnpm --dir api build
 #          npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
 
+      # Build a Docker image for the API.
+      - name: Build API Docker image
+        run: |
+          docker build \
+            -f infra/docker/api.Dockerfile \
+            -t arcade-api:test \
+            .
+
+      # Build a Docker image for the web API.
+      - name: Build Web Docker image
+        run: |
+          docker build \
+            -f infra/docker/web.Dockerfile \
+            -t arcade-web:test \
+            .
+
+      # Run an API container.
+      - name: Run API Docker container
+        run: |
+          docker run -d \
+            --name arcade-api \
+            --network host \
+            -e NODE_ENV=production \
+            -e PORT=5080 \
+            -e MONGO_URL=mongodb://127.0.0.1:27018 \
+            -e MONGO_DB=arcadehub \
+            arcade-api:test
+
+      # Test API health endpoint.
+      - name: Test API health
+        run: |
+          echo "Waiting for API to start..."
+
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5080/health; then
+              echo "API is running successfully."
+              exit 0
+            fi
+
+            echo "Waiting for API..."
+            sleep 2
+          done
+
+          echo "API failed to start."
+          docker logs arcade-api
+          exit 1
+
+      # Run a web app container.
+      - name: Run Web Docker container
+        run: |
+          docker run -d \
+            --name arcade-web \
+            -p 8080:80 \
+            arcade-web:test
+
+      # Test frontend.
+      - name: Test Web application
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8080/; then
+              echo "Web application is running successfully."
+              exit 0
+            fi
+
+            echo "Waiting for Web application..."
+            sleep 2
+          done
+
+          echo "Web application failed to start."
+          docker logs arcade-web
+          exit 1
+
+      # Clean up the web app container.
+      - name: Stop web container
+        if: always()
+        run: |
+          docker stop arcade-web || true
+          docker rm arcade-web || true
+
+      # Clean up the API container.
+      - name: Stop API container
+        if: always()
+        run: |
+          docker stop arcade-api || true
+          docker rm arcade-api || true
+
       # Print a confirmation message.
       - name: Print a confirmation message.
         run: echo "Success."
