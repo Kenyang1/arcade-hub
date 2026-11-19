@@ -39,7 +39,8 @@ FROM nginx:1.29-alpine AS production
 RUN rm /etc/nginx/conf.d/default.conf
 
 # Copy custom Nginx configuration
-COPY infra/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+ARG NGINX_CONFIG=infra/nginx/nginx.conf
+COPY ${NGINX_CONFIG} /etc/nginx/conf.d/default.conf
 
 # Copy React production build
 COPY --from=build /arcade-hub/web/dist /usr/share/nginx/html

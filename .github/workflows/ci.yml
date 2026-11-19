@@ -73,20 +73,25 @@ jobs:
             -t arcade-api:test \
             .
 
-      # Build a Docker image for the web API.
+      # Build a Docker image for the web app.
       - name: Build Web Docker image
         run: |
           docker build \
             -f infra/docker/web.Dockerfile \
+            --build-arg NGINX_CONFIG=infra/nginx/nginx_ci.conf \
             -t arcade-web:test \
             .
+
+      # Create a Docker network.
+      - name: Create Docker network
+        run: docker network create arcade-network
 
       # Run an API container.
       - name: Run API Docker container
         run: |
           docker run -d \
             --name arcade-api \
-            --network host \
+            --network arcade-network \
             -e NODE_ENV=production \
             -e PORT=5080 \
             -e MONGO_URL=mongodb://127.0.0.1:27018 \
@@ -117,6 +122,7 @@ jobs:
         run: |
           docker run -d \
             --name arcade-web \
+            --network arcade-network \
             -p 8080:80 \
             arcade-web:test
 
