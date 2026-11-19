@@ -1,7 +1,9 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
+import type { AuthResponse, User } from '@arcade-hub/contracts'
 import jwt from 'jsonwebtoken'
 import { type Db, ObjectId } from 'mongodb'
+import { z } from 'zod'
 import { config } from '../config.ts'
 import { HttpError } from '../http/problem.ts'
 import { logger } from '../logger.ts'
@@ -133,4 +135,102 @@ export async function seedDevUsers(db: Db): Promise<void> {
   await findOrCreateUser(db, DEV_USERNAME, config.seedDevPassword)
   await findOrCreateUser(db, 'dev-player2', config.seedDevPassword)
   logger.info({ users: 2 }, 'seeded development users')
+}
+
+/**
+ * What a new account may use. The contract only says "two strings", so the API
+ * checks these itself and answers 400 with field errors (docs/plans/2026-11-19-auth-routes.md).
+ */
+export const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,32}$/
+export const PASSWORD_MIN_LENGTH = 8
+/** scrypt on a megabyte of password is slow on purpose; nobody needs more than this. */
+export const PASSWORD_MAX_LENGTH = 128
+
+export const NewAccountSchema = z.object({
+  username: z
+    .string({ error: 'Enter a username.' })
+    .trim()
+    .regex(USERNAME_PATTERN, 'Usernames are 3 to 32 letters, numbers, dots, dashes or underscores.'),
+  password: z
+    .string({ error: 'Enter a password.' })
+    .min(PASSWORD_MIN_LENGTH, `Passwords need at least ${PASSWORD_MIN_LENGTH} characters.`)
+    .max(PASSWORD_MAX_LENGTH, `Passwords can be at most ${PASSWORD_MAX_LENGTH} characters.`),
+})
+export type NewAccount = z.infer<typeof NewAccountSchema>
+
+/**
+ * Usernames nobody can register. With ALLOW_STAND_IN_USER on, every request
+ * without a token plays as DEV_USERNAME, so a real person must never own it.
+ */
+const RESERVED_USERNAMES = new Set([DEV_USERNAME])
+
+const USERNAME_TAKEN = 'That username is taken. Pick another one.'
+const WRONG_CREDENTIALS = "That username and password don't match."
+
+/** The public view of an account: never its password hash. */
+export function toUser(document: UserDocument): User {
+  return {
+    id: document._id.toHexString(),
+    username: document.username,
+    createdAt: document.createdAt.toISOString(),
+  }
+}
+
+/** A token can't be signed without the key, which is the deployment's problem, not the player's. */
+function assertCanSignIn(): void {
+  if (!config.jwtSigningKey) throw new HttpError(503, "Accounts aren't switched on on the server yet.")
+}
+
+function authResponse(document: UserDocument): AuthResponse {
+  return { token: signToken(document._id.toHexString()), user: toUser(document) }
+}
+
+/**
+ * POST /api/auth/register: creates the account and signs in as it. A taken or
+ * reserved username is a 409; the unique index on users.username settles two
+ * people registering the same name at once.
+ */
+export async function registerUser(db: Db, account: NewAccount): Promise<AuthResponse> {
+  assertCanSignIn()
+  if (RESERVED_USERNAMES.has(account.username)) throw new HttpError(409, USERNAME_TAKEN)
+
+  const users = db.collection<UserDocument>(USERS_COLLECTION)
+  const document: UserDocument = {
+    _id: new ObjectId(),
+    username: account.username,
+    passwordHash: await hashPassword(account.password),
+    createdAt: new Date(),
+  }
+  try {
+    await users.insertOne(document)
+  } catch (error) {
+    if ((error as { code?: number }).code === 11000) throw new HttpError(409, USERNAME_TAKEN)
+    throw error
+  }
+  return authResponse(document)
+}
+
+/** Hashed once, so a sign-in for an unknown username costs the same scrypt as a real one. */
+let decoyHash: Promise<string> | undefined
+
+/**
+ * POST /api/auth/login. An unknown username and a wrong password get the same
+ * 401 in about the same time, so the answer doesn't tell anyone which
+ * usernames exist.
+ */
+export async function signIn(db: Db, username: string, password: string): Promise<AuthResponse> {
+  assertCanSignIn()
+  const name = username.trim()
+  if (password.length === 0 || password.length > PASSWORD_MAX_LENGTH) {
+    throw new HttpError(401, WRONG_CREDENTIALS)
+  }
+
+  const user = await db.collection<UserDocument>(USERS_COLLECTION).findOne({ username: name })
+  if (!user) {
+    decoyHash ??= hashPassword(randomBytes(32).toString('hex'))
+    await verifyPassword(password, await decoyHash)
+    throw new HttpError(401, WRONG_CREDENTIALS)
+  }
+  if (!(await verifyPassword(password, user.passwordHash))) throw new HttpError(401, WRONG_CREDENTIALS)
+  return authResponse(user)
 }

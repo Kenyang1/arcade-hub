@@ -35,10 +35,10 @@ instead of a JWT (the rest of the API already reads bearer tokens).
 
 ## Steps
 - [x] `docs/plans/`: this plan (first commit).
-- [ ] `core/auth.ts`: `registerUser`, `signIn`, `toUser`; the username and
+- [x] `core/auth.ts`: `registerUser`, `signIn`, `toUser`; the username and
   password rules. `routes/auth.ts`: `POST /api/auth/register` (201) and
   `POST /api/auth/login` (200). `app.ts`, `openapi.ts`.
-- [ ] `test/auth-routes.test.ts`: register, duplicate, reserved name, bad
+- [x] `test/auth-routes.test.ts`: register, duplicate, reserved name, bad
   input, login, wrong password, unknown user, the token on a signed-in route,
   nothing secret in the logs.
 
@@ -50,6 +50,7 @@ instead of a JWT (the rest of the API already reads bearer tokens).
 | `dev-player` can't be registered (409) | With `ALLOW_STAND_IN_USER` on, every request without a token plays as it | Allowing it |
 | Login answers the same 401 for an unknown user and a wrong password, and runs `scrypt` either way | Doesn't tell a stranger which usernames exist | 404 for an unknown user |
 | No `JWT_SIGNING_KEY` answers 503 | A missing Secret is a deployment problem, not the player's | A 500 |
+| A 400 from register puts the rule in `detail` | PR #27's page shows `detail` as it is, so the player sees what to fix | A generic "not valid" |
 | Logs carry `userId` only | CLAUDE.md, "Logging": never usernames, passwords or tokens | Logging the username |
 
 ## Out of scope

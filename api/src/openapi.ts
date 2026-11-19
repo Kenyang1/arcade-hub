@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import {
+  AuthResponseSchema,
+  CredentialsSchema,
   GameSchema,
   ProblemDetailsSchema,
   SaveSchema,
@@ -19,6 +21,8 @@ const startSessionRequest = z.toJSONSchema(StartSessionRequestSchema)
 const startSessionResponse = z.toJSONSchema(StartSessionResponseSchema)
 const updateSessionRequest = z.toJSONSchema(UpdateSessionRequestSchema)
 const problemDetails = z.toJSONSchema(ProblemDetailsSchema)
+const credentials = z.toJSONSchema(CredentialsSchema)
+const authResponse = z.toJSONSchema(AuthResponseSchema)
 
 const problemResponse = {
   description: 'ProblemDetails (RFC 9457).',
@@ -36,7 +40,7 @@ export const openApiDocument = {
     title: 'Arcade Hub API',
     version: '0.2.0',
     description:
-      'The catalog, play sessions and save states today; accounts and pause/resume follow (see docs/spec.md).',
+      'The catalog, accounts, play sessions and save states today; pause/resume follows (see docs/spec.md).',
   },
   paths: {
     '/api/health': {
@@ -58,6 +62,46 @@ export const openApiDocument = {
               },
             },
           },
+        },
+      },
+    },
+    '/api/auth/register': {
+      post: {
+        summary: 'Create an account and sign in',
+        description:
+          'Username: 3 to 32 letters, numbers, dots, dashes or underscores (trimmed). Password: 8 to 128 characters. A taken username answers 409. The response carries a bearer token for every signed-in path.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: credentials } },
+        },
+        responses: {
+          201: {
+            description: 'The new account and its bearer token.',
+            content: { 'application/json': { schema: authResponse } },
+          },
+          400: problemResponse,
+          409: problemResponse,
+          503: problemResponse,
+        },
+      },
+    },
+    '/api/auth/login': {
+      post: {
+        summary: 'Sign in',
+        description:
+          'An unknown username and a wrong password both answer 401 with the same message. Tokens last 7 days.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: credentials } },
+        },
+        responses: {
+          200: {
+            description: 'The account and a bearer token.',
+            content: { 'application/json': { schema: authResponse } },
+          },
+          400: problemResponse,
+          401: problemResponse,
+          503: problemResponse,
         },
       },
     },
