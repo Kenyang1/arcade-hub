@@ -65,6 +65,100 @@ jobs:
           pnpm --dir api build
 #          npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
 
+      # Build a Docker image for the API.
+      - name: Build API Docker image
+        run: |
+          docker build \
+            -f infra/docker/api.Dockerfile \
+            -t arcade-api:test \
+            .
+
+      # Build a Docker image for the web app.
+      - name: Build Web Docker image
+        run: |
+          docker build \
+            -f infra/docker/web.Dockerfile \
+            -t arcade-web:test \
+            .
+
+      # One network for the smoke test, so containers can find each other by name.
+      - name: Create Docker network
+        run: docker network create arcade-ci
+
+      # Run an API container.
+      - name: Run API Docker container
+        run: |
+          docker run -d \
+            --name arcade-api \
+            --network arcade-ci \
+            --network-alias arcade-hub-api-service \
+            --add-host=host.docker.internal:host-gateway \
+            -p 5080:5080 \
+            -e PORT=5080 \
+            -e MONGO_URL=mongodb://host.docker.internal:27018 \
+            -e MONGO_DB=arcadehub \
+            arcade-api:test
+
+      # Test API health endpoint.
+      - name: Test API health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5080/api/health | grep -q '"mongo":"up"'; then
+              echo "API is up and connected to MongoDB."
+              exit 0
+            fi
+            echo "Waiting for API..."
+            sleep 2
+          done
+          echo "API failed to start or can't reach MongoDB."
+          exit 1
+
+      # Run the web app with the real nginx.conf. Must start after the API,
+      # because nginx looks up arcade-hub-api-service once, at startup.
+      - name: Run Web Docker container
+        run: |
+          docker run -d \
+            --name arcade-web \
+            --network arcade-ci \
+            -p 8080:80 \
+            arcade-web:test
+
+      # Test the web application.
+      - name: Test Web application
+        run: |
+          for i in {1..15}; do
+            if curl -fsS http://localhost:8080/ | grep -q 'id="root"' \
+              && curl -fsS http://localhost:8080/api/health | grep -q '"status":"ok"'; then
+              echo "Web app is serving and proxying /api."
+              exit 0
+            fi
+            echo "Waiting for web app..."
+            sleep 2
+          done
+          echo "Web app failed."
+          exit 1
+
+      # Print both containers' logs when anything above failed.
+      - name: Show container logs
+        if: failure()
+        run: |
+          docker logs arcade-api || true
+          docker logs arcade-web || true
+
+      # Clean up the web app container.
+      - name: Stop web container
+        if: always()
+        run: |
+          docker stop arcade-web || true
+          docker rm arcade-web || true
+
+      # Clean up the API container.
+      - name: Stop API container
+        if: always()
+        run: |
+          docker stop arcade-api || true
+          docker rm arcade-api || true
+
       # Print a confirmation message.
       - name: Print a confirmation message.
         run: echo "Success."
