@@ -955,6 +955,14 @@ button:disabled {
   font-weight: 700;
 }
 
+/* Where the player was, from the AI labeller. Up to 60 characters, so it can
+   be cut short on a narrow screen; the Resume button's label says it in full. */
+.save-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .save-group + .save-group {
   margin-top: 1.5rem;
 }

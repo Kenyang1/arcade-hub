@@ -4,7 +4,7 @@
 - **Owner:** Kenyang (Soham reviews `api/` and the contract; Khoi adds the key to the Kubernetes Secret)
 - **Milestone:** M3 to M5 from docs/spec.md (research during M2)
 - **Date:** 2026-11-10
-- **PR:** https://github.com/Kenyang1/arcade-hub/pull/20
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/20 (labeller, frame capture), https://github.com/Kenyang1/arcade-hub/pull/22 (label contract)
 
 ## Goal
 Our professor asked us to add AI to Arcade Hub. When this is done, a player
@@ -75,17 +75,22 @@ captured during a session the caller owns.
   `api/test/ai.test.ts`, and `pnpm --dir api ai:label <folder>` in
   `api/scripts/label-frames.ts`. Not yet run against the real API: that needs
   the key from the research step.
-- [ ] **Contract change (M3), with Soham.** Add an optional `label` to
-  `SaveSchema`, and add `GuideRequest`/`GuideResponse`. Own PR. **Contract and
-  data-model change.** (`packages/contracts/src/index.ts`)
+- [x] **Contract change for labels (M3), with Soham.** Add an optional `label`
+  to `SaveSchema`. Own PR. **Contract and data-model change.**
+  (`packages/contracts/src/index.ts`) Done on `feat/save-label-contract`,
+  together with mock labels (`web/src/lib/mocks.ts`) and the label on My Saves
+  (`web/src/pages/MySavesPage.tsx`), which shows the time when there is none.
+  `GuideRequest`/`GuideResponse` move to the game-guide step, which is the
+  first to use them.
 - [x] **Frame capture (M3).** `captureFrame(): Promise<Blob>` in
   `emulator.ts`. (`web/src/lib/emulator.ts`) Done, using
   `gameManager.screenshot()` with a 5 s timeout. Not yet called by any page; the save-labels step does that.
 - [ ] **Save labels (M4).** The save upload sends a frame. The API labels it
-  and stores the label on the save document. My Saves shows it. Mocks
-  first. **`api.ts` signature change** (`uploadSave` takes the frame).
-  (`api/src/routes/saves.ts`, `api/src/core/`, `web/src/lib/api.ts`,
-  `web/src/pages/MySavesPage.tsx`)
+  and stores the label on the save document. **`api.ts` signature change**
+  (`uploadSave` takes the frame). (`api/src/routes/saves.ts`, `api/src/core/`,
+  `web/src/lib/api.ts`, `web/src/pages/PlayPage.tsx`) Waits for PR 18 (the
+  save endpoints) and PR 16 (`uploadSave` real call) to merge, since both
+  change these files.
 - [ ] **Kubernetes Secret (M4), Khoi.** Add `GEMINI_API_KEY` to
   `arcade-secrets` and pass it to the API Deployment. The value never goes in git.
   (`infra/k8s/deployment.yaml`)
@@ -115,6 +120,8 @@ captured during a session the caller owns.
 | `captureFrame()` calls `gameManager.screenshot()`, not `takeScreenshot()` (Nov 14) | In EmulatorJS 4.2.3, `takeScreenshot` reads `upscale \|\| default`, so 0 (native size) becomes 1, and its retroarch path never calls back for 1: the promise hangs. `gameManager.screenshot()` also waits with no limit, so `captureFrame()` gives up after 5 s | `takeScreenshot('retroarch', 'png', 0)` |
 | `GEMINI_MODEL` defaults to `gemini-flash-latest` (Nov 14) | It's the alias the Gemini SDK's own examples use. Google renames models often, so the research step picks the real model and sets it in `.env` | Hard-coding a dated model name |
 | A low-confidence answer comes back as `label: null` (Nov 14) | Below 0.5 the save shows its time, which is better than a wrong label | Showing every label |
+| `Save.label` is an optional string, absent when there is no label (Nov 14) | A save has no label when the AI is off, failed or wasn't sure, and the page treats all three the same: it shows the time. Optional keeps every existing save valid | `label: string \| null` on every save |
+| The contract change ships before the save endpoints and `uploadSave` land (Nov 14) | PR 18 and PR 16 still change the save route and `api.ts`, so this PR adds only the field, mocks and display, and stays out of their files | Building the whole step on top of PR 18's branch |
 | A rate-limit or quota error is treated like any other AI failure | The free tier has per-minute and per-day limits; the save still works and shows its time | Retrying until the call succeeds |
 
 ## Out of scope

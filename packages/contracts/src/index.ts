@@ -33,6 +33,9 @@ export const GameInputSchema = z.object({
 })
 export type GameInput = z.infer<typeof GameInputSchema>
 
+/** Name of the multipart file part that carries the game file on POST /api/games. */
+export const GAME_FILE_FIELD = 'file'
+
 /** Query string of GET /api/games. */
 export const GameQuerySchema = z.object({
   search: z.string().optional(),
@@ -86,6 +89,12 @@ export const SaveSchema = z.object({
   gameId: z.string(),
   kind: SaveKindSchema,
   createdAt: z.string(),
+  /**
+   * Where the player was, read from the game screen by the AI labeller, for
+   * example "Level 12, 0:45 left". Absent when the AI is off, the call failed,
+   * or the model wasn't sure; the page then shows createdAt instead.
+   */
+  label: z.string().max(60).optional(),
 })
 export type Save = z.infer<typeof SaveSchema>
 

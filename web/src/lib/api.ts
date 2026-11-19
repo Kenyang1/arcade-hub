@@ -3,7 +3,7 @@
 // data contract"). Every function returns mocks until its endpoint exists.
 // Then its body changes to a real call through request(); its signature stays.
 
-import { mockGames, mockSession } from './mocks.ts'
+import { mockSession } from './mocks.ts'
 import type {
   AuthResponse,
   Credentials,
@@ -148,24 +148,24 @@ export async function getGame(id: string): Promise<Game> {
 }
 
 /** POST /api/games. The game file goes along as multipart form data. */
-export async function createGame(input: GameInput, _file: File): Promise<Game> {
-  const game: Game = { ...input, id: `g${mockGames.length + 1}`, createdAt: new Date().toISOString() }
-  mockGames.push(game)
-  return game
+export async function createGame(input: GameInput, file: File): Promise<Game> {
+  const form = new FormData()
+  form.set('title', input.title)
+  form.set('description', input.description)
+  form.set('genre', input.genre)
+  form.set('core', input.core)
+  form.set('file', file, file.name)
+  return request<Game>('POST', '/games', form)
 }
 
 /** PUT /api/games/{id} */
 export async function updateGame(id: string, input: GameInput): Promise<Game> {
-  const game = await getGame(id)
-  Object.assign(game, input)
-  return game
+  return request<Game>('PUT', `/games/${encodeURIComponent(id)}`, input)
 }
 
 /** DELETE /api/games/{id} */
 export async function deleteGame(id: string): Promise<void> {
-  const index = mockGames.findIndex((game) => game.id === id)
-  if (index < 0) throw new ApiError(404, 'That game does not exist.')
-  mockGames.splice(index, 1)
+  await request<void>('DELETE', `/games/${encodeURIComponent(id)}`)
 }
 
 /** URL of GET /api/games/{id}/file (M2), where EmulatorJS downloads the game. */
