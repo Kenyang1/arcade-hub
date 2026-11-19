@@ -82,16 +82,12 @@ jobs:
             -t arcade-web:test \
             .
 
-      # Create a Docker network.
-      - name: Create Docker network
-        run: docker network create arcade-network
-
       # Run an API container.
       - name: Run API Docker container
         run: |
           docker run -d \
             --name arcade-api \
-            --network arcade-network \
+            --network host \
             -e NODE_ENV=production \
             -e PORT=5080 \
             -e MONGO_URL=mongodb://127.0.0.1:27018 \
@@ -122,7 +118,7 @@ jobs:
         run: |
           docker run -d \
             --name arcade-web \
-            --network arcade-network \
+            --network host \
             -p 8080:80 \
             arcade-web:test
 
