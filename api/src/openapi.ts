@@ -3,6 +3,7 @@ import {
   AuthResponseSchema,
   CredentialsSchema,
   GameSchema,
+  GameInputSchema,
   ProblemDetailsSchema,
   SaveSchema,
   SessionSchema,
@@ -23,6 +24,7 @@ const updateSessionRequest = z.toJSONSchema(UpdateSessionRequestSchema)
 const problemDetails = z.toJSONSchema(ProblemDetailsSchema)
 const credentials = z.toJSONSchema(CredentialsSchema)
 const authResponse = z.toJSONSchema(AuthResponseSchema)
+const gameInput = z.toJSONSchema(GameInputSchema)
 
 const problemResponse = {
   description: 'ProblemDetails (RFC 9457).',
@@ -38,9 +40,9 @@ export const openApiDocument = {
   openapi: '3.1.0',
   info: {
     title: 'Arcade Hub API',
-    version: '0.2.0',
+    version: '0.3.0',
     description:
-      'The catalog, accounts, play sessions and save states today; pause/resume follows (see docs/spec.md).',
+      'The catalog and the games in it, accounts, play sessions and save states today; pause/resume follows (see docs/spec.md).',
   },
   paths: {
     '/api/health': {
@@ -127,6 +129,40 @@ export const openApiDocument = {
           503: problemResponse,
         },
       },
+      post: {
+        summary: 'Add a game with its file',
+        description:
+          'Multipart form data: `title`, `description`, `genre`, `core`, and the game file as a file part named `file`. The file goes into GridFS and the game into the catalog. A title that already exists answers 409. Signed in.',
+        security: signedIn,
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  genre: { type: 'string' },
+                  core: { type: 'string', enum: ['nes', 'snes', 'gb', 'gba'] },
+                  file: { type: 'string', format: 'binary' },
+                },
+                required: ['title', 'description', 'genre', 'core', 'file'],
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'The added game.',
+            content: { 'application/json': { schema: game } },
+          },
+          400: problemResponse,
+          401: problemResponse,
+          409: problemResponse,
+          503: problemResponse,
+        },
+      },
     },
     '/api/games/{id}': {
       get: {
@@ -134,6 +170,39 @@ export const openApiDocument = {
         parameters: [idParameter],
         responses: {
           200: { description: 'The game.', content: { 'application/json': { schema: game } } },
+          404: problemResponse,
+          503: problemResponse,
+        },
+      },
+      put: {
+        summary: 'Edit a game',
+        description: 'Changes the details only; the game file stays. A title another game already has answers 409. Signed in.',
+        security: signedIn,
+        parameters: [idParameter],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: gameInput } },
+        },
+        responses: {
+          200: {
+            description: 'The edited game.',
+            content: { 'application/json': { schema: game } },
+          },
+          400: problemResponse,
+          401: problemResponse,
+          404: problemResponse,
+          409: problemResponse,
+          503: problemResponse,
+        },
+      },
+      delete: {
+        summary: 'Remove a game',
+        description: 'Removes the game and its file. Signed in.',
+        security: signedIn,
+        parameters: [idParameter],
+        responses: {
+          204: { description: 'The game is gone.' },
+          401: problemResponse,
           404: problemResponse,
           503: problemResponse,
         },
@@ -332,6 +401,7 @@ export const openApiDocument = {
     },
     schemas: {
       Game: game,
+      GameInput: gameInput,
       Session: session,
       Save: save,
       StartSessionRequest: startSessionRequest,

@@ -14,9 +14,10 @@ the browser. Today the only way in is `import-games` from a terminal.
 
 ## Context
 
-- `api.ts` already has `createGame(input, file)`, `updateGame(id, input)` and
-  `deleteGame(id)` with the final signatures. They return mocks: the API has no
-  `POST`, `PUT` or `DELETE /api/games` yet (Soham's M2 work).
+- `api.ts` has `createGame(input, file)`, `updateGame(id, input)` and
+  `deleteGame(id)` with the final signatures. They returned mocks until the
+  API's `POST`, `PUT` and `DELETE /api/games` landed (2026-11-19); the bodies
+  are real calls now and the pages did not change.
 - `listGames` and `getGame` are real calls, so a game "added" through the mock
   won't show in the catalog until the endpoints land. The pages are built and
   checked against the mocks; nothing in them changes when the backend lands.
@@ -75,7 +76,6 @@ No step changes `packages/contracts` or an `api.ts` signature.
 
 ## Out of scope
 
-- The API endpoints themselves (Soham).
 - Replacing a game's file after it's added.
 - Who may edit or delete which game: the server decides; the page shows its
   403 message.

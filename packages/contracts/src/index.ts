@@ -33,6 +33,9 @@ export const GameInputSchema = z.object({
 })
 export type GameInput = z.infer<typeof GameInputSchema>
 
+/** Name of the multipart file part that carries the game file on POST /api/games. */
+export const GAME_FILE_FIELD = 'file'
+
 /** Query string of GET /api/games. */
 export const GameQuerySchema = z.object({
   search: z.string().optional(),
