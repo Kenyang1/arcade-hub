@@ -52,11 +52,15 @@ export function isConnected(): boolean {
   return db !== undefined
 }
 
-/** `up` when MongoDB answers a ping, `down` otherwise. Never throws. */
-export async function pingMongo(): Promise<'up' | 'down'> {
+/**
+ * `up` when MongoDB answers a ping, `down` otherwise. Never throws. `timeoutMs`
+ * caps how long a server that has gone away can hold the answer, which is what
+ * keeps /api/health fast for Kubernetes probes.
+ */
+export async function pingMongo(timeoutMs?: number): Promise<'up' | 'down'> {
   if (!db) return 'down'
   try {
-    await db.command({ ping: 1 })
+    await db.command({ ping: 1 }, timeoutMs === undefined ? undefined : { timeoutMS: timeoutMs })
     return 'up'
   } catch (error) {
     logger.warn({ err: error }, 'mongo ping failed')
