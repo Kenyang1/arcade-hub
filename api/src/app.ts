@@ -2,6 +2,7 @@ import express from 'express'
 import swaggerUi from 'swagger-ui-express'
 import { errorHandler, notFound } from './http/problem.ts'
 import { openApiDocument } from './openapi.ts'
+import auth from './routes/auth.ts'
 import games from './routes/games.ts'
 import health from './routes/health.ts'
 import saves from './routes/saves.ts'
@@ -14,6 +15,7 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }))
 
   app.use('/api/health', health)
+  app.use('/api/auth', auth)
   app.use('/api/games', games)
   app.use('/api/sessions', sessions)
   app.use('/api/saves', saves)

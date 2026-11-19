@@ -22,6 +22,7 @@ function isDuplicateKey(error: unknown): boolean {
  * those are merged first and the build retried.
  */
 export async function ensureIndexes(db: Db): Promise<void> {
+  await ensureGameTitleIndex(db)
   const users = db.collection<UserDocument>(USERS_COLLECTION)
   try {
     await users.createIndex({ username: 1 }, { unique: true })
@@ -30,6 +31,21 @@ export async function ensureIndexes(db: Db): Promise<void> {
     const merged = await mergeDuplicateUsers(db)
     logger.warn(merged, 'users: merged duplicate usernames so the unique index can be built')
     await users.createIndex({ username: 1 }, { unique: true })
+  }
+}
+
+/**
+ * `games.title` is unique, so two people adding the same game at once can't
+ * both land and the API can answer 409 for a duplicate title. A catalog that
+ * already holds duplicates keeps working without the index: refusing to start
+ * over them is worse than the race the index prevents.
+ */
+async function ensureGameTitleIndex(db: Db): Promise<void> {
+  try {
+    await db.collection('games').createIndex({ title: 1 }, { unique: true })
+  } catch (error) {
+    if (!isDuplicateKey(error)) throw error
+    logger.warn('games: duplicate titles predate the unique index; leaving it unbuilt')
   }
 }
 

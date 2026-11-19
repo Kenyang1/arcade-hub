@@ -29,6 +29,14 @@ export const config = {
   seedDevPassword: process.env.SEED_DEV_PASSWORD ?? '',
   /** Largest save state accepted, in bytes. EmulatorJS states are far smaller than game files. */
   maxSaveStateBytes: 10 * 1024 * 1024,
+  /** Largest game file a player may upload, in bytes. nginx allows 100 MB (infra/nginx). */
+  maxGameFileBytes: 100 * 1024 * 1024,
+  /**
+   * How long GET /api/health may wait for MongoDB before reporting it down, in
+   * milliseconds. Kubernetes probes have a short timeout of their own, so a
+   * missing database must not make the probe slow enough to restart the pod.
+   */
+  mongoHealthTimeoutMs: 750,
   /** Gemini API key from Google AI Studio (free tier). Empty turns the AI features off. */
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
   /** The Gemini model that reads game frames. Pick one in AI Studio that takes images. */
