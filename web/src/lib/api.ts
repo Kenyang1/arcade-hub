@@ -144,14 +144,8 @@ export async function downloadGameFile(url: string): Promise<Blob> {
 // --- Sessions (M2, M4) -----------------------------------------------------
 
 /** POST /api/sessions. Starts a session, optionally from a save. */
-export async function startSession(request: StartSessionRequest): Promise<StartSessionResponse> {
-  const game = await getGame(request.gameId)
-  return {
-    sessionId: mockSession.id,
-    gameFileUrl: gameFileUrl(game.id),
-    core: game.core,
-    saveFileUrl: request.saveId ? saveFileUrl(request.saveId) : null,
-  }
+export async function startSession(start: StartSessionRequest): Promise<StartSessionResponse> {
+  return request<StartSessionResponse>('POST', '/sessions', start)
 }
 
 /** GET /api/sessions/{id} */
@@ -161,7 +155,7 @@ export async function getSession(id: string): Promise<Session> {
 
 /** POST /api/sessions/{id}/heartbeat. The player page calls this every 30 s. */
 export async function heartbeat(sessionId: string): Promise<void> {
-  if (sessionId === mockSession.id) mockSession.lastHeartbeatAt = new Date().toISOString()
+  await request<void>('POST', `/sessions/${encodeURIComponent(sessionId)}/heartbeat`)
 }
 
 /** PATCH /api/sessions/{id}. Pause or resume (M4). */
@@ -172,24 +166,21 @@ export async function updateSession(sessionId: string, request: UpdateSessionReq
 
 /** DELETE /api/sessions/{id} */
 export async function endSession(sessionId: string): Promise<void> {
-  if (sessionId === mockSession.id) mockSession.status = 'ended'
+  await request<void>('DELETE', `/sessions/${encodeURIComponent(sessionId)}`)
 }
 
-// --- Saves (M3) ------------------------------------------------------------
+// --- Saves (M2, M3) --------------------------------------------------------
 
-/** POST /api/sessions/{id}/saves. Uploads a save state, manual or autosave. */
+/**
+ * POST /api/sessions/{id}/saves. Uploads a save state, manual or autosave, as
+ * multipart form data: a `kind` field and the state as a file field named `state`.
+ */
 export async function uploadSave(sessionId: string, kind: SaveKind, state: Uint8Array): Promise<Save> {
   if (state.byteLength === 0) throw new ApiError(400, 'The save state is empty.')
-  const session = await getSession(sessionId)
-  const save: Save = {
-    id: `s${mockSaves.length + 1}`,
-    userId: session.userId,
-    gameId: session.gameId,
-    kind,
-    createdAt: new Date().toISOString(),
-  }
-  mockSaves.push(save)
-  return save
+  const form = new FormData()
+  form.set('kind', kind)
+  form.set('state', new Blob([new Uint8Array(state)], { type: 'application/octet-stream' }), 'state.bin')
+  return request<Save>('POST', `/sessions/${encodeURIComponent(sessionId)}/saves`, form)
 }
 
 /** GET /api/saves?gameId=. The signed-in player's saves, newest first. */
@@ -199,9 +190,21 @@ export async function listSaves(gameId?: string): Promise<Save[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
-/** URL of GET /api/saves/{id}/file, where EmulatorJS downloads a save state. */
+/** URL of GET /api/saves/{id}/file, where a save state downloads from. */
 export function saveFileUrl(id: string): string {
   return `${API_BASE}/saves/${id}/file`
+}
+
+/**
+ * GET a save state: the session's saveFileUrl when resuming. The Play page loads
+ * the bytes into EmulatorJS once the game runs (see emulator.loadSaveState).
+ */
+export async function downloadSaveFile(url: string): Promise<Uint8Array> {
+  const response = await send(url, { headers: authHeaders() })
+  if (!response.ok) throw await toApiError(response)
+  const state = new Uint8Array(await response.arrayBuffer())
+  if (state.byteLength === 0) throw new ApiError(response.status, 'The save file is empty.')
+  return state
 }
 
 // --- Real calls ------------------------------------------------------------
@@ -223,7 +226,8 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 
   const response = await send(`${API_BASE}${path}`, { method, headers, body: payload })
   if (!response.ok) throw await toApiError(response)
-  if (response.status === 204) return undefined as T
+  // 204, or an empty 200 from an endpoint that sends nothing back (heartbeat, end).
+  if (response.status === 204 || !response.headers.get('content-type')?.includes('json')) return undefined as T
   return (await response.json()) as T
 }
 
