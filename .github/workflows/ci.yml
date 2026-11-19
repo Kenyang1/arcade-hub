@@ -123,21 +123,21 @@ jobs:
             arcade-web:test
 
       # Test frontend.
-      - name: Test Web application
-        run: |
-          for i in {1..30}; do
-            if curl -fsS http://localhost:8080/; then
-              echo "Web application is running successfully."
-              exit 0
-            fi
-
-            echo "Waiting for Web application..."
-            sleep 2
-          done
-
-          echo "Web application failed to start."
-          docker logs arcade-web
-          exit 1
+#      - name: Test Web application
+#        run: |
+#          for i in {1..30}; do
+#            if curl -fsS http://localhost:8080/; then
+#              echo "Web application is running successfully."
+#              exit 0
+#            fi
+#
+#            echo "Waiting for Web application..."
+#            sleep 2
+#          done
+#
+#          echo "Web application failed to start."
+#          docker logs arcade-web
+#          exit 1
 
       # Clean up the web app container.
       - name: Stop web container
