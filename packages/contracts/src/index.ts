@@ -106,8 +106,10 @@ export type SaveQuery = z.infer<typeof SaveQuerySchema>
 
 /**
  * Fields of POST /api/sessions/{id}/saves. The request is multipart form data:
- * these fields, plus the state itself as a file part named `state`.
- * The response is a `Save`.
+ * these fields, plus the state itself as a file part named `state`, and
+ * optionally the game screen as a PNG file part named `frame`. The response
+ * is a `Save`. A frame is labelled after the response is sent, so the label
+ * appears on the save shortly afterwards, not in this response.
  */
 export const SaveUploadFieldsSchema = z.object({
   kind: SaveKindSchema,
@@ -116,6 +118,9 @@ export type SaveUploadFields = z.infer<typeof SaveUploadFieldsSchema>
 
 /** Name of the multipart file part that carries the save state. */
 export const SAVE_STATE_FIELD = 'state'
+
+/** Name of the optional multipart file part that carries the game screen as a PNG, for the AI label. */
+export const SAVE_FRAME_FIELD = 'frame'
 
 export const UserSchema = z.object({
   id: z.string(),

@@ -323,7 +323,7 @@ export const openApiDocument = {
       post: {
         summary: 'Upload a save state',
         description:
-          'Multipart form data: a `kind` field (`manual` or `autosave`) and the state as a file part named `state`. The state goes into GridFS; the response is the save, not the file.',
+          'Multipart form data: a `kind` field (`manual` or `autosave`), the state as a file part named `state`, and optionally the game screen as a PNG file part named `frame`. The state goes into GridFS; the response is the save, not the file. When a frame is sent and the AI is on, the save gets a `label` shortly after this response, read from the frame; it is never in the response itself.',
         security: signedIn,
         parameters: [idParameter],
         requestBody: {
@@ -335,6 +335,7 @@ export const openApiDocument = {
                 properties: {
                   kind: { type: 'string', enum: ['manual', 'autosave'] },
                   state: { type: 'string', format: 'binary' },
+                  frame: { type: 'string', format: 'binary', description: 'The game screen as a PNG, for the AI label.' },
                 },
                 required: ['kind', 'state'],
               },
