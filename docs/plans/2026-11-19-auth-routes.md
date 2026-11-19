@@ -1,10 +1,10 @@
 # Create an account and sign in through the API
 
-- **Status:** in progress
+- **Status:** done
 - **Owner:** Kenyang (a backup for Soham's routes; `api/` is Soham's, so he reviews)
 - **Milestone:** M3 Save and resume (exit check Sun Nov 22)
 - **Date:** 2026-11-19
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/31
 
 ## Goal
 A player creates an account or signs in from the Sign in page and gets a

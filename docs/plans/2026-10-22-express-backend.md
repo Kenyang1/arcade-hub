@@ -68,7 +68,7 @@ Rejected:
 - [ ] **Jobs CLI** (Khoi): `api/src/jobs/` with `idle-sweep`,
       `prune-autosaves` and `import-games` commands that log "not implemented
       yet", run with `pnpm --dir api jobs <command>`.
-- [ ] **CI** (Khoi): `.github/workflows/ci.yml` runs the pnpm checks under
+- [x] **CI** (Khoi): `.github/workflows/ci.yml` runs the pnpm checks under
       Commands in `CLAUDE.md`, with a MongoDB service container for API tests.
 
 ## Decisions
