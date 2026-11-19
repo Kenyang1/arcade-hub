@@ -78,7 +78,6 @@ jobs:
         run: |
           docker build \
             -f infra/docker/web.Dockerfile \
-            --build-arg NGINX_CONFIG=infra/nginx/nginx_ci.conf \
             -t arcade-web:test \
             .
 
