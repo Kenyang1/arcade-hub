@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import {
+  ApiError,
   downloadGameFile,
   downloadSaveFile,
   endSession,
@@ -11,13 +12,17 @@ import {
   startSession,
   uploadSave,
 } from '../lib/api.ts'
+import { startAutosave } from '../lib/autosave.ts'
 import * as emulator from '../lib/emulator.ts'
 import { readExportedState, writeExportedState, type ExportedState } from '../lib/exportedState.ts'
+import { signInLink } from '../lib/nextPath.ts'
 import type { Game, Save, StartSessionResponse } from '../lib/types.ts'
 
 // M2: opening a game starts a session (POST /api/sessions) and the game file
 // comes from the session. A heartbeat goes out every 30 s. Save uploads the
-// state to the API, and ?saveId= resumes from a save in any tab. If the session
+// state to the API, and ?saveId= resumes from a save in any tab. M3: an autosave
+// uploads every 60 s while the game runs (see lib/autosave.ts and
+// docs/plans/2026-11-15-sign-in-my-saves-autosave.md). If the session
 // can't start, the game still plays the M1 way, without saving to the server.
 // Export state and Load state still keep a state in this tab until the Nov 15
 // check passes (see docs/plans/2026-11-12-play-page-sessions-and-saves.md).
@@ -62,6 +67,13 @@ function Player({ gameId, saveId }: { gameId: string; saveId: string | null }) {
   const [lastSave, setLastSave] = useState<Save | null>(null)
   const [saving, setSaving] = useState(false)
   const [ended, setEnded] = useState(false)
+  // When the last autosave landed, or why it didn't. Quiet notes, never page errors.
+  const [autosavedAt, setAutosavedAt] = useState<Date | null>(null)
+  const [autosaveNote, setAutosaveNote] = useState<string | null>(null)
+  // True when the API said the player isn't signed in, so the page offers sign-in.
+  const [needsSignIn, setNeedsSignIn] = useState(false)
+  // True while a manual save uploads, so an autosave doesn't upload the same moment.
+  const savingRef = useRef(false)
   // The live session id, for cleanup when the page goes away.
   const sessionIdRef = useRef<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -121,6 +133,7 @@ function Player({ gameId, saveId }: { gameId: string; saveId: string | null }) {
         started = await startSession(saveId ? { gameId, saveId } : { gameId })
       } catch (reason) {
         if (cancelled) return
+        if (reason instanceof ApiError && reason.status === 401) setNeedsSignIn(true)
         setServerNote(
           saveId
             ? `The save couldn't be resumed, so the game starts from the beginning. ${errorMessage(reason)}`
@@ -200,17 +213,38 @@ function Player({ gameId, saveId }: { gameId: string; saveId: string | null }) {
     return () => window.clearInterval(timer)
   }, [sessionId, ended])
 
+  // Autosave every 60 s while the game runs. Skipped while paused or while a
+  // manual save uploads; a failed one is shown and tried again next minute.
+  useEffect(() => {
+    if (!sessionId || ended || !running) return
+    return startAutosave({
+      canSave: () => !savingRef.current && emulator.isRunning() && !emulator.isPaused(),
+      save: () => uploadSave(sessionId, 'autosave', emulator.getSaveState()),
+      onSaved: (save) => {
+        setAutosavedAt(new Date(save.createdAt))
+        setAutosaveNote(null)
+      },
+      onError: (reason) => {
+        if (reason instanceof ApiError && reason.status === 401) setNeedsSignIn(true)
+        setAutosaveNote(`The last autosave didn't reach the server. ${errorMessage(reason)} Trying again in a minute.`)
+      },
+    })
+  }, [sessionId, ended, running])
+
   async function onSave() {
     if (!session || !running) return
     setError(null)
     setSaving(true)
+    savingRef.current = true
     try {
       const save = await uploadSave(session.sessionId, 'manual', emulator.getSaveState())
       setLastSave(save)
       setStatus(`Saved to the server at ${timeOf(new Date(save.createdAt))}.`)
     } catch (reason) {
+      if (reason instanceof ApiError && reason.status === 401) setNeedsSignIn(true)
       setError(`The save didn't reach the server. ${errorMessage(reason)}`)
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
     emulator.focus()
@@ -314,7 +348,16 @@ function Player({ gameId, saveId }: { gameId: string; saveId: string | null }) {
           </Link>
         </p>
       )}
+      {autosavedAt && !autosaveNote && <p className="muted">Autosaved at {timeOf(autosavedAt)}.</p>}
+      {autosaveNote && <p className="muted">{autosaveNote}</p>}
       {serverNote && <p className="muted">{serverNote}</p>}
+      {needsSignIn && (
+        <p>
+          <Link to={signInLink(`/play/${gameId}${saveId ? `?saveId=${encodeURIComponent(saveId)}` : ''}`)}>
+            Sign in to keep your saves
+          </Link>
+        </p>
+      )}
       {exported && (
         <p className="muted">
           Exported state: {sizeOf(exported.bytes)} from {timeOf(exported.exportedAt)}, kept in this tab

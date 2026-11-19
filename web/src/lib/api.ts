@@ -3,7 +3,7 @@
 // data contract"). Every function returns mocks until its endpoint exists.
 // Then its body changes to a real call through request(); its signature stays.
 
-import { mockSaves, mockSession, mockToken, mockUser } from './mocks.ts'
+import { mockSession } from './mocks.ts'
 import type {
   AuthResponse,
   Credentials,
@@ -44,6 +44,11 @@ export function errorMessage(error: unknown): string {
 }
 
 // --- Auth (M3) -------------------------------------------------------------
+// The token and the signed-in user live in localStorage, so every tab and a
+// reload share them. Pages read them through useCurrentUser (useCurrentUser.ts),
+// which re-renders on onAuthChange, also when another tab signs in or out.
+
+const AUTH_CHANGED = 'arcade-hub:auth-changed'
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -51,31 +56,71 @@ export function getToken(): string | null {
 
 export function getCurrentUser(): User | null {
   const raw = localStorage.getItem(USER_KEY)
-  return raw ? (JSON.parse(raw) as User) : null
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as User
+  } catch {
+    // A damaged entry is the same as being signed out.
+    return null
+  }
+}
+
+/** Calls `listener` whenever someone signs in or out, in this tab or another. Returns an unsubscribe. */
+export function onAuthChange(listener: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === TOKEN_KEY || event.key === USER_KEY) listener()
+  }
+  window.addEventListener(AUTH_CHANGED, listener)
+  window.addEventListener('storage', onStorage)
+  return () => {
+    window.removeEventListener(AUTH_CHANGED, listener)
+    window.removeEventListener('storage', onStorage)
+  }
 }
 
 function storeAuth(auth: AuthResponse): void {
   localStorage.setItem(TOKEN_KEY, auth.token)
   localStorage.setItem(USER_KEY, JSON.stringify(auth.user))
+  window.dispatchEvent(new Event(AUTH_CHANGED))
 }
 
 export function signOut(): void {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
+  window.dispatchEvent(new Event(AUTH_CHANGED))
 }
 
-/** POST /api/auth/register */
+/** Until Soham's auth routes land, the API answers them with 404. */
+const ACCOUNTS_OFF = "Accounts aren't switched on on the server yet. You can still play and save without one."
+
+/** POST /api/auth/register. Creates the account and signs in as it. */
 export async function register(credentials: Credentials): Promise<AuthResponse> {
-  const auth: AuthResponse = { token: mockToken, user: { ...mockUser, username: credentials.username } }
-  storeAuth(auth)
-  return auth
+  try {
+    const auth = await request<AuthResponse>('POST', '/auth/register', credentials, { signOutOn401: false })
+    storeAuth(auth)
+    return auth
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) throw new ApiError(404, ACCOUNTS_OFF, error.problem)
+    if (error instanceof ApiError && error.status === 409) {
+      throw new ApiError(409, 'That username is taken. Pick another one.', error.problem)
+    }
+    throw error
+  }
 }
 
 /** POST /api/auth/login */
 export async function login(credentials: Credentials): Promise<AuthResponse> {
-  const auth: AuthResponse = { token: mockToken, user: { ...mockUser, username: credentials.username } }
-  storeAuth(auth)
-  return auth
+  try {
+    const auth = await request<AuthResponse>('POST', '/auth/login', credentials, { signOutOn401: false })
+    storeAuth(auth)
+    return auth
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) throw new ApiError(404, ACCOUNTS_OFF, error.problem)
+    if (error instanceof ApiError && error.status === 401) {
+      throw new ApiError(401, "That username and password don't match.", error.problem)
+    }
+    throw error
+  }
 }
 
 // --- Catalog (M1) ----------------------------------------------------------
@@ -150,7 +195,7 @@ export async function startSession(start: StartSessionRequest): Promise<StartSes
 
 /** GET /api/sessions/{id} */
 export async function getSession(id: string): Promise<Session> {
-  return { ...mockSession, id }
+  return request<Session>('GET', `/sessions/${encodeURIComponent(id)}`)
 }
 
 /** POST /api/sessions/{id}/heartbeat. The player page calls this every 30 s. */
@@ -185,9 +230,8 @@ export async function uploadSave(sessionId: string, kind: SaveKind, state: Uint8
 
 /** GET /api/saves?gameId=. The signed-in player's saves, newest first. */
 export async function listSaves(gameId?: string): Promise<Save[]> {
-  return mockSaves
-    .filter((save) => !gameId || save.gameId === gameId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const path = gameId ? `/saves?${new URLSearchParams({ gameId }).toString()}` : '/saves'
+  return request<Save[]>('GET', path)
 }
 
 /** URL of GET /api/saves/{id}/file, where a save state downloads from. */
@@ -213,7 +257,12 @@ export async function downloadSaveFile(url: string): Promise<Uint8Array> {
  * Sends a request to the API with the bearer token and turns a ProblemDetails
  * body into an ApiError. The functions above switch to this as endpoints land.
  */
-export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
   const headers = authHeaders()
 
   let payload: BodyInit | undefined
@@ -225,10 +274,19 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   }
 
   const response = await send(`${API_BASE}${path}`, { method, headers, body: payload })
-  if (!response.ok) throw await toApiError(response)
+  if (!response.ok) throw await toApiError(response, options)
   // 204, or an empty 200 from an endpoint that sends nothing back (heartbeat, end).
   if (response.status === 204 || !response.headers.get('content-type')?.includes('json')) return undefined as T
   return (await response.json()) as T
+}
+
+export interface RequestOptions {
+  /**
+   * When a request that carried a token comes back 401, the token is expired or
+   * not ours: sign out, so the next request doesn't fail the same way. Default
+   * true. Sign-in itself turns it off, since its 401 means a wrong password.
+   */
+  signOutOn401?: boolean
 }
 
 /** fetch, with a plain message when the server can't be reached at all. */
@@ -253,7 +311,13 @@ const FALLBACK_MESSAGES: Record<number, string> = {
   409: 'A game with that title already exists.',
 }
 
-async function toApiError(response: Response): Promise<ApiError> {
+const SIGN_IN_RAN_OUT = 'Your sign-in ran out. Please sign in again.'
+
+async function toApiError(response: Response, options: RequestOptions = {}): Promise<ApiError> {
+  if (response.status === 401 && (options.signOutOn401 ?? true) && getToken()) {
+    signOut()
+    return new ApiError(401, SIGN_IN_RAN_OUT)
+  }
   let problem: ProblemDetails | undefined
   if (response.headers.get('content-type')?.includes('json')) {
     problem = (await response.json()) as ProblemDetails
