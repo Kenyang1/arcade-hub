@@ -47,8 +47,22 @@ export const mockGames: Game[] = [
 ]
 
 export const mockSaves: Save[] = [
-  { id: 's1', userId: 'u1', gameId: 'g1', kind: 'manual', createdAt: '2026-10-26T18:30:00Z' },
-  { id: 's2', userId: 'u1', gameId: 'g1', kind: 'autosave', createdAt: '2026-10-26T18:41:00Z' },
+  {
+    id: 's1',
+    userId: 'u1',
+    gameId: 'g1',
+    kind: 'manual',
+    createdAt: '2026-10-26T18:30:00Z',
+    label: 'Level 12, 0:45 left',
+  },
+  {
+    id: 's2',
+    userId: 'u1',
+    gameId: 'g1',
+    kind: 'autosave',
+    createdAt: '2026-10-26T18:41:00Z',
+    label: 'Level 14, 1:30 left',
+  },
   { id: 's3', userId: 'u1', gameId: 'g2', kind: 'autosave', createdAt: '2026-10-27T09:05:00Z' },
 ]
 

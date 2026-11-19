@@ -72,13 +72,14 @@ export default function MySavesPage() {
                   {game && <GameCover game={game} size="thumb" showTitle={false} />}
                   <span className="save-text">
                     <span className="save-title">{game?.title ?? 'Unknown game'}</span>
+                    {save.label && <span className="save-label">{save.label}</span>}
                     <span className="muted">{savedAt(new Date(save.createdAt))}</span>
                   </span>
                   <span className={`badge badge-${save.kind}`}>{save.kind}</span>
                   <Link
                     to={`/play/${save.gameId}?saveId=${save.id}`}
                     className="button"
-                    aria-label={`Resume ${game?.title ?? 'game'}, ${save.kind} from ${new Date(save.createdAt).toLocaleString()}`}
+                    aria-label={`Resume ${game?.title ?? 'game'}, ${save.kind}${save.label ? `, ${save.label},` : ''} from ${new Date(save.createdAt).toLocaleString()}`}
                   >
                     Resume
                   </Link>
