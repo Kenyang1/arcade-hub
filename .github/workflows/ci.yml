@@ -55,14 +55,15 @@ jobs:
       - name: Test and build the frontend and backend
         working-directory: ./
         run: |
-          pnpm --dir web lint
-          pnpm --dir web typecheck
-          pnpm --dir web build
           pnpm --dir packages/contracts typecheck
           pnpm --dir api lint
           pnpm --dir api typecheck
           pnpm --dir api test
           pnpm --dir api build
+          pnpm --dir web lint
+          pnpm --dir web typecheck
+          pnpm --dir web build
+          pnpm --dir web test
 #          npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
 
       # Build a Docker image for the API.
