@@ -61,9 +61,9 @@ twice); `window.confirm` for delete (blocks the page, can't be styled).
 - [x] Delete with inline confirmation on the edit page.
 - [x] Entry points: "Add a game" on `CatalogPage.tsx`, Edit (and the `E` key)
       on `GameDetailsPage.tsx`; styles in `index.css`.
-- [ ] Unit tests for the file-extension check (`web/src/lib/gameFile.ts`).
-      Follow-up, not done yet. Was waiting for PR 27, which adds Vitest to `web/`; adding it here too would
-      conflict in `web/package.json` and the lockfile. PR 27 is merged, so this can land now.
+- [x] Unit tests for the file-extension check (`web/src/lib/gameFile.ts`).
+      Done in `web/src/lib/gameFile.test.ts`, with
+      `docs/plans/2026-11-19-managed-play-web.md`.
 
 The backend step (2026-11-19) added `GAME_FILE_FIELD` to `packages/contracts`.
 No `api.ts` signature changed: only the three bodies became real calls.

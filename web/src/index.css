@@ -986,6 +986,35 @@ button:disabled {
   font-size: 1.5rem;
 }
 
+.play-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.play-heading h1 {
+  margin: 0;
+}
+
+/* Session status on the Play page. Text always says the status; color only backs it up. */
+.badge-running {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-text);
+}
+
+.badge-paused {
+  color: var(--text);
+}
+
+.badge-idle,
+.badge-ended {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger);
+}
+
 .player {
   width: 100%;
   aspect-ratio: 4 / 3;
