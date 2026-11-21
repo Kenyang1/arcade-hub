@@ -3,7 +3,6 @@
 // data contract"). Every function returns mocks until its endpoint exists.
 // Then its body changes to a real call through request(); its signature stays.
 
-import { mockSession } from './mocks.ts'
 import type {
   AuthResponse,
   Credentials,
@@ -203,10 +202,9 @@ export async function heartbeat(sessionId: string): Promise<void> {
   await request<void>('POST', `/sessions/${encodeURIComponent(sessionId)}/heartbeat`)
 }
 
-/** PATCH /api/sessions/{id}. Pause or resume (M4). */
-export async function updateSession(sessionId: string, request: UpdateSessionRequest): Promise<Session> {
-  if (sessionId === mockSession.id) mockSession.status = request.status
-  return { ...mockSession, id: sessionId, status: request.status }
+/** PATCH /api/sessions/{id}. Pause or resume (M4). A session that went idle or ended answers 409. */
+export async function updateSession(sessionId: string, update: UpdateSessionRequest): Promise<Session> {
+  return request<Session>('PATCH', `/sessions/${encodeURIComponent(sessionId)}`, update)
 }
 
 /** DELETE /api/sessions/{id} */
@@ -222,10 +220,37 @@ export async function endSession(sessionId: string): Promise<void> {
  */
 export async function uploadSave(sessionId: string, kind: SaveKind, state: Uint8Array): Promise<Save> {
   if (state.byteLength === 0) throw new ApiError(400, 'The save state is empty.')
+  return request<Save>('POST', `/sessions/${encodeURIComponent(sessionId)}/saves`, saveForm(kind, state))
+}
+
+/**
+ * Browsers cap a keepalive request at 64 KB in all. A NES state is about 14 KB;
+ * a bigger one is skipped rather than cut off. Exported for the tests.
+ */
+export const EXIT_SAVE_MAX_BYTES = 60 * 1024
+
+/**
+ * POST /api/sessions/{id}/saves as an autosave, sent with `keepalive` so it
+ * still reaches the server after the tab closes. The page is gone by the time
+ * the answer comes, so nothing is returned. Returns false when the state is
+ * empty or too big to send this way.
+ */
+export function uploadSaveOnExit(sessionId: string, state: Uint8Array): boolean {
+  if (state.byteLength === 0 || state.byteLength > EXIT_SAVE_MAX_BYTES) return false
+  const url = `${API_BASE}/sessions/${encodeURIComponent(sessionId)}/saves`
+  fetch(url, { method: 'POST', headers: authHeaders(), body: saveForm('autosave', state), keepalive: true }).catch(
+    (reason: unknown) => {
+      console.warn(`The last autosave for session ${sessionId} did not reach the server:`, reason)
+    },
+  )
+  return true
+}
+
+function saveForm(kind: SaveKind, state: Uint8Array): FormData {
   const form = new FormData()
   form.set('kind', kind)
   form.set('state', new Blob([new Uint8Array(state)], { type: 'application/octet-stream' }), 'state.bin')
-  return request<Save>('POST', `/sessions/${encodeURIComponent(sessionId)}/saves`, form)
+  return form
 }
 
 /** GET /api/saves?gameId=. The signed-in player's saves, newest first. */
