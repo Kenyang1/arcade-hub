@@ -12,6 +12,7 @@ import {
   register,
   signOut,
   updateSession,
+  uploadSave,
   uploadSaveOnExit,
 } from './api.ts'
 import type { AuthResponse } from './types.ts'
@@ -243,5 +244,38 @@ describe('pause, resume and the last autosave', () => {
     expect(uploadSaveOnExit('s1', new Uint8Array([1]))).toBe(true)
     await vi.waitFor(() => expect(warn).toHaveBeenCalled())
     warn.mockRestore()
+  })
+})
+
+describe('uploadSave', () => {
+  it('sends the game screen as the frame for the AI label', async () => {
+    localStorage.setItem('arcade-hub.token', 'token-1')
+    fetchMock.mockResolvedValue(json(201, { id: 'save-1' }))
+    const frame = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' })
+
+    await expect(uploadSave('s1', 'manual', new Uint8Array([1, 2, 3]), frame)).resolves.toEqual({ id: 'save-1' })
+
+    const { url, init } = lastCall()
+    expect(url).toBe('/api/sessions/s1/saves')
+    expect(init.method).toBe('POST')
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer token-1')
+    const form = init.body as FormData
+    expect(form.get('kind')).toBe('manual')
+    expect(form.get('state')).toBeInstanceOf(Blob)
+    expect(form.get('frame')).toBeInstanceOf(Blob)
+    expect((form.get('frame') as Blob).type).toBe('image/png')
+  })
+
+  it('leaves the frame out when the screen could not be captured', async () => {
+    fetchMock.mockResolvedValue(json(201, { id: 'save-2' }))
+    await uploadSave('s1', 'manual', new Uint8Array([1]))
+    const form = lastCall().init.body as FormData
+    expect(form.get('state')).toBeInstanceOf(Blob)
+    expect(form.get('frame')).toBeNull()
+  })
+
+  it('refuses an empty state before calling the API', async () => {
+    await expect(uploadSave('s1', 'manual', new Uint8Array())).rejects.toMatchObject({ status: 400 })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
