@@ -84,8 +84,10 @@ Owned by Kenyang and Soham together. EmulatorJS produces the save state in the b
 | Every 30 s | Send a heartbeat | POST /api/sessions/{id}/heartbeat |
 | Every 60 s | Take a save state from EmulatorJS and upload it as an autosave | POST /api/sessions/{id}/saves |
 | Player clicks Save | Upload a manual save | POST /api/sessions/{id}/saves |
-| Player clicks Pause or Resume | Pause or resume EmulatorJS and report it | PATCH /api/sessions/{id} |
-| Tab closes | Try one last autosave, then end the session | POST saves, then DELETE /api/sessions/{id} |
+| Player clicks Pause or Resume | Pause or resume EmulatorJS and report it. Pause also uploads an autosave of the paused spot | PATCH /api/sessions/{id}, and POST saves on pause |
+| A heartbeat, save or status change answers 409 | Read the session, pause the game, show it as idle or ended, and offer to keep playing in a new session that starts with an autosave of the current spot | GET /api/sessions/{id}, then POST /api/sessions and POST saves |
+| Leaves the page inside the app | Upload one last autosave, then end the session | POST saves, then DELETE /api/sessions/{id} |
+| Tab closes or reloads | Send one last autosave with `keepalive`; the session is left to go idle, since a DELETE sent at the same moment can reach the server before the save | POST saves (keepalive) |
 
 Kubernetes CronJobs (Khoi) run the jobs CLI in `api/src/jobs/`. `idle-sweep` runs every minute and marks sessions with no heartbeat for 10 minutes as idle. `prune-autosaves` keeps only the latest five autosaves per player per game.
 

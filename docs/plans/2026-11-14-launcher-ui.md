@@ -1,6 +1,6 @@
 # Restyle the web app as a game-launcher library
 
-- **Status:** in progress (implemented, awaiting review)
+- **Status:** done
 - **Owner:** Kenyang
 - **Milestone:** M2 (UI polish ahead of the M5 phone-width pass)
 - **Date:** 2026-11-14

@@ -1,10 +1,10 @@
 # Sessions and save states over the API
 
-- **Status:** in progress
+- **Status:** done
 - **Owner:** Soham
 - **Milestone:** M2 Catalog management and sessions (save-state check Nov 15)
 - **Date:** 2026-11-13
-- **PR:** <link once opened>
+- **PR:** https://github.com/Kenyang1/arcade-hub/pull/18
 
 ## Goal
 The player page can start a session, keep it alive, end it, upload a save state
@@ -54,7 +54,8 @@ still mocks sign-in.
 - [x] `api/test/sessions.test.ts`, `api/test/saves.test.ts`.
 - [x] `GET /api/sessions/{id}`, `GET /api/saves?gameId=` and `PATCH /api/sessions/{id}`
       (pause/resume), plus `SaveQuerySchema` in the contract.
-- [ ] Autosave pruning and idle sweeping (Khoi), and `api.ts` real calls (Kenyang).
+- [ ] Autosave pruning and idle sweeping (Khoi): not done, moved to M4 (the `idle-sweep` and `prune-autosaves` jobs).
+- [x] `api.ts` real calls (Kenyang): PR 16 and PR 27.
 
 ## Decisions
 | Decision | Why | Rejected |
