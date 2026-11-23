@@ -1,5 +1,5 @@
 import { type Db, GridFSBucket, ObjectId } from 'mongodb'
-import { type SaveDocument, SAVES_COLLECTION, SAVE_STATE_BUCKET } from '../core/saves'
+import { SAVES_COLLECTION, SAVE_STATE_BUCKET } from '../core/saves'
 
 export async function pruneAutosaves(database: Db) {
     // Retrieve the save collection.
