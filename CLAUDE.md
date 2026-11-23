@@ -79,6 +79,7 @@ pnpm --dir api lint
 pnpm --dir api typecheck
 pnpm --dir api test                  # needs the local MongoDB running
 pnpm --dir api build
+node tests/postman/prepare-fixtures.mjs     # tiny synthetic upload files, gitignored
 npx newman run tests/arcade-hub.postman_collection.json -e tests/local.postman_environment.json
 ```
 
@@ -108,7 +109,7 @@ packages/
 infra/
   docker/                   Dockerfiles for web (nginx) and api
   k8s/                      Kubernetes manifests, namespace `arcade`, incl. cronjobs.yaml (Khoi)
-tests/                      Postman collection and environments
+tests/                      Postman collection and environments; tests/postman/ generates its upload fixtures
 docs/
   spec.md                   The build spec
   games.md                  Games we use and their licenses
