@@ -1,6 +1,7 @@
 import { closeMongo, connectMongo } from '../core/mongo.ts'
 import { logger } from '../logger.ts'
 import { importGames } from './import-games.ts'
+import { pruneAutosaves } from './prune-autosaves.ts'
 
 // The jobs CLI: `pnpm --dir api jobs <job> [args]`, or `node dist/jobs/cli.js`
 // in the API image. import-games is run by hand; the CronJobs run the others.
@@ -19,10 +20,20 @@ async function main(argv: string[]): Promise<void> {
     logger.info({ imported, skipped, apply }, `import-games: ${imported.length} games ${verb}`)
     return
   }
-  if (command === 'idle-sweep' || command === 'prune-autosaves') {
+  if (command === 'idle-sweep') {
     logger.info(`${command}: not implemented yet`)
     return
   }
+  if (command === 'prune-autosaves') {
+    // Connect to the MongoDB database.
+    const db = await connectMongo()
+
+    // Keep only 5 autosaves for each user.
+    await pruneAutosaves(db)
+
+    return
+  }
+
   throw new Error(command ? `unknown job "${command}". ${usage}` : usage)
 }
 
