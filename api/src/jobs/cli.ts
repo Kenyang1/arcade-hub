@@ -36,7 +36,8 @@ async function main(argv: string[]): Promise<void> {
   // Manual savefiles stay intact.
   if (command === 'prune-autosaves') {
     const db = await connectMongo()
-    await pruneAutosaves(db)
+    const totalDeletedAutosaves = await pruneAutosaves(db)
+    console.log(`Deleted ${totalDeletedAutosaves} autosave(s).`)
     return
   }
 

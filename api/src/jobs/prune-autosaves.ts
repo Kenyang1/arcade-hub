@@ -1,45 +1,70 @@
 import { type Db, GridFSBucket, ObjectId } from 'mongodb'
 import { SAVES_COLLECTION, SAVE_STATE_BUCKET } from '../core/saves'
 
-export async function pruneAutosaves(database: Db) {
+export async function pruneAutosaves(database: Db): Promise<number> {
     // Retrieve the save collection.
-    const saves = database.collection(SAVES_COLLECTION)
+    const savesCollection = database.collection(SAVES_COLLECTION)
 
     // Retrieve the GridFS bucket containing the save files.
-    const saveFileBucket = new GridFSBucket(database, {bucketName: SAVE_STATE_BUCKET})
+    const saveFilesBucket = new GridFSBucket(database, {bucketName: SAVE_STATE_BUCKET})
 
-    // Get unique users from the saves collection.
-    const uniqueUserIds = await saves.distinct<string>('userId') as ObjectId[]
+    // Retrieve unique (user, game) pairs.
+    const userGamePairs = await savesCollection.aggregate<{
+        userId: ObjectId,
+        gameId: ObjectId
+    }>([
+        {
+            $match: { kind: 'autosave' }
+        },
+        {
+            $group: {
+                _id: {
+                    userId: '$userId',
+                    gameId: '$gameId'
+                }
+        }
+        },
+        {
+            $project: {
+                 _id: 0,
+                userId: '$_id.userId',
+                gameId: '$_id.gameId'
+            }
+        }
+    ]).toArray()
 
-    // For each unique user, keep only the 5 lastest autosaves.
-    for (const userId of uniqueUserIds) {
-        
-        // Get the autosaves, sorted descendingly by create date.
-        const autosaves = await saves
-            .find({userId, kind: 'autosave'})
-            .sort({ createdAt: -1})
+    // For each unique (user, game) pairs, only keep 5 autosaves.
+    let totalDeletedAutosaves = 0
+    for (const { userId, gameId } of userGamePairs) {
+        // Get autosaves.
+        const autosaves = await savesCollection
+            .find({ userId, gameId, kind: 'autosave' })
+            .sort({ createdAt: -1, _id: -1 })
             .toArray()
 
-        // If the user has only 5 autosaves or fewer, 
-        // there is no need to remove anything.
-        if (autosaves.length <= 5)
+        // Get obsolete saves.
+        const obsoleteSaves = autosaves.slice(5)
+        if (obsoleteSaves.length <= 0)
             continue
 
-        // Remove old saves.
-        const oldAutosaves = autosaves.slice(5)
-        for (const save of oldAutosaves) {
-            // Delete the file associated with the save file.
+        // Delete obsolete saves.
+        for (const save of obsoleteSaves) {
             try {
-                await saveFileBucket.delete(save.stateFileId)
+                // Delete the file associated with the save file.
+                await saveFilesBucket.delete(save.stateFileId)
+
+                // Delete the save document.
+                await savesCollection.deleteOne({ _id: save._id })
+
+                totalDeletedAutosaves++
             } catch (error) {
-                console.error(`Cannot delete the save file in GridFS with stateFileId = ${save.stateFileId}`
+                console.error(`Cannot delete autosave ${save._id}, stateFileId = ${save.stateFileId}`
                     , error)
             }
-
-            // Delete the save document.
-            await saves.deleteOne({ _id: save._id })
         }
 
-        console.log(`Removed ${autosaves.length} autosave(s) for userId = ${userId}.`)
+        console.log(`Deleted ${obsoleteSaves.length} autosave(s) for (userId, gameId) = (${userId}, ${gameId})`)
     }
+
+    return totalDeletedAutosaves
 }
