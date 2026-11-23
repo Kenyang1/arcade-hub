@@ -6,6 +6,10 @@ metadata:
   namespace: arcade
 spec:
   schedule: "*/5 * * * *"    # Run every 5 minutes.
+  timeZone: "America/New_York"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
 
   concurrencyPolicy: Forbid
   
@@ -46,7 +50,13 @@ metadata:
   namespace: arcade
 spec:
   schedule: "0 0 * * 0"      # Run at 12:00 AM (midnight) every Sunday
+  timeZone: "America/New_York"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
   concurrencyPolicy: Forbid
+
   jobTemplate:
     spec:
       template:
@@ -84,7 +94,13 @@ metadata:
   namespace: arcade
 spec:
   suspend: true # This cronjob must be executed manually
+
   schedule: "0 0 1 1 *"
+  timeZone: "America/New_York"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
