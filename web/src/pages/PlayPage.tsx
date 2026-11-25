@@ -345,7 +345,10 @@ function Player({ gameId, saveId }: { gameId: string; saveId: string | null }) {
     setSaving(true)
     savingRef.current = true
     try {
-      const save = await uploadSave(session.sessionId, 'manual', emulator.getSaveState())
+      // The frame is only for the AI label; a failed capture still saves, just
+      // without one. The API answers before it reads the label either way.
+      const frame = await emulator.captureFrame().catch(() => undefined)
+      const save = await uploadSave(session.sessionId, 'manual', emulator.getSaveState(), frame)
       setLastSave(save)
       setStatus(`Saved to the server at ${timeOf(new Date(save.createdAt))}.`)
     } catch (reason) {
