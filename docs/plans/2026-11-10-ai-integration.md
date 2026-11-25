@@ -138,7 +138,7 @@ captured during a session the caller owns.
 - Tamper-proof scores. The game runs in the player's browser, so the score
   reader only makes cheating harder. The report says so.
 - Sending usernames, account data or save files to the AI provider.
-- Any AI work that delays the nine final demo checks.
+- Any AI work that delays the eight final demo checks.
 
 ## Verification
 - `pnpm --dir api test` covers `ai.ts` with a mocked provider. No test calls the
@@ -152,5 +152,5 @@ captured during a session the caller owns.
   Submit twice for one session and get a 409.
 - Logs carry `sessionId`, `saveId` and `gameId` and never the frame, the key or
   a username (CLAUDE.md, Logging).
-- None of these steps is one of the nine final demo checks. They add an AI
+- None of these steps is one of the eight final demo checks. They add an AI
   demo step on top of the checklist.
