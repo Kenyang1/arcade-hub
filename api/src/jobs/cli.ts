@@ -1,6 +1,8 @@
 import { closeMongo, connectMongo } from '../core/mongo.ts'
 import { logger } from '../logger.ts'
+import { idleSweep } from './idle-sweep.ts'
 import { importGames } from './import-games.ts'
+import { pruneAutosaves } from './prune-autosaves.ts'
 
 // The jobs CLI: `pnpm --dir api jobs <job> [args]`, or `node dist/jobs/cli.js`
 // in the API image. import-games is run by hand; the CronJobs run the others.
@@ -9,6 +11,8 @@ const usage = 'usage: jobs import-games <folder> [--apply] | idle-sweep | prune-
 
 async function main(argv: string[]): Promise<void> {
   const [command, ...args] = argv
+
+  // Import games to GridFS
   if (command === 'import-games') {
     const folder = args.find((arg) => !arg.startsWith('--'))
     if (!folder) throw new Error(usage)
@@ -19,10 +23,24 @@ async function main(argv: string[]): Promise<void> {
     logger.info({ imported, skipped, apply }, `import-games: ${imported.length} games ${verb}`)
     return
   }
-  if (command === 'idle-sweep' || command === 'prune-autosaves') {
-    logger.info(`${command}: not implemented yet`)
+
+  // All running or paused sessions whose heartbeat is at least 10 minutes old
+  // are marked as idle.
+  if (command === 'idle-sweep') {
+    const db = await connectMongo()
+    await idleSweep(db)
     return
   }
+
+  // For each user, keep only the latest 5 autosave files.
+  // Manual savefiles stay intact.
+  if (command === 'prune-autosaves') {
+    const db = await connectMongo()
+    const totalDeletedAutosaves = await pruneAutosaves(db)
+    console.log(`Deleted ${totalDeletedAutosaves} autosave(s).`)
+    return
+  }
+
   throw new Error(command ? `unknown job "${command}". ${usage}` : usage)
 }
 
