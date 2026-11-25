@@ -192,7 +192,7 @@ Each row is one milestone of about one week. A milestone is done only when its e
 | M0 Setup, Oct 25–31 | Create repo and project board; commit `CLAUDE.md`, `docs/spec.md`, the plan template and PR template; scaffold React app with `types.ts`, `api.ts` and mocks; set up the pnpm workspace; run EmulatorJS with one homebrew game in a plain page | Scaffold the Express API in TypeScript with Swagger and a health endpoint; write the data model and the contracts package with Kenyang; local MongoDB in Docker | Set up local Kubernetes for all three; CI workflow; jobs CLI stub; with Kenyang, confirm an EmulatorJS save state exports and loads back | All three run the stack locally; CI passes; a homebrew game plays in the browser; contracts agreed |
 | M1 Thin real slice, Nov 1–8 | Catalog, search and details pages on the real API; Play loads EmulatorJS with the game file from the API; Export state and Load state buttons on the Play page, built from the `/spike` round trip | `GET /api/games`, `GET /api/games/{id}` and `GET /api/games/{id}/file` on MongoDB and GridFS; validation and status codes; tests | `import-games` job; Dockerfiles for web and API; Deployments, Services, ConfigMap, Secret, MongoDB StatefulSet with PVC; nginx content types for EmulatorJS; CI required on `main` | **Team demo Nov 8:** every step of the demo script passes on the cluster |
 | M2 Catalog management and sessions, Nov 9–15 | Add, edit and delete pages; the player page starts a session, sends a heartbeat, and has Start and End buttons; the save state uploads to the API | Games create, update and delete, with game file upload to GridFS; session endpoints; heartbeat tracking | Autoscaler for the API; raise upload size limits | Add, edit and delete a game in the browser against the cluster. **Save-state check Nov 15:** a save uploads to the API and loads back in a fresh tab |
-| M3 Save & resume, Nov 16–22 | Sign-in and register screens; Save button; autosave every 60 s; My Saves list with Resume | Accounts with hashed passwords and JWT; save upload and download through GridFS; start-from-save | Test resume across two computers | Save, close the tab, resume on another computer from the same spot |
+| M3 Save & resume, Nov 16–22 | Sign-in and register screens; Save button; autosave every 60 s; My Saves list with Resume | Accounts with hashed passwords and JWT; save upload and download through GridFS; start-from-save | Test resume in a fresh browser | Save, close the browser, sign in again and resume from the same spot |
 | M4 Managed play, Nov 23–29 (Thanksgiving) | Pause/Resume button; session status badges; last autosave when the tab closes | PATCH pause/resume; the Core methods the jobs call | Idle-sweep and autosave-pruning CronJobs; CPU and memory limits | Close the tab mid-game, lose at most 1 minute; idle session marked idle after 10 min; delete an API pod mid-game and autosaves keep landing |
 | M5 Hardening, Nov 30–Dec 3 | Phone-width pass; UI bug fixes; record backup demo video | Postman collection for every endpoint; fix API bugs | Load test (20 clients), autoscaling 1→3 API replicas, fault tests; MongoDB backup CronJob if time allows | Every demo check in the last section passes. **Code freeze Dec 3** |
 | M6 Demo & report, Dec 4–6 | Lead slides and live demo rehearsal | Write API and data sections of the report | Write infrastructure section; final cluster reset before demo | Everything done by Dec 6 |
@@ -229,13 +229,12 @@ The two biggest risks are the six-week timeline and getting save states out of E
 
 ## Final demo checklist
 
-Each box is one non-functional requirement, proven live. Tick them off during M5. All nine must pass by the code freeze on Dec 3.
+Each box is one non-functional requirement, proven live. Tick them off during M5. All eight must pass by the code freeze on Dec 3.
 
 - [ ] **Fault tolerance:** close the browser tab mid-game, reopen, and lose at most 1 minute of progress (Kenyang)
 - [ ] **API failover:** with 3 API replicas, delete one pod mid-game; autosaves keep landing with no error shown (Khoi)
 - [ ] **Idle detection:** stop playing for 10 minutes; the CronJob marks the session idle; resume still works (Khoi)
 - [ ] **Durability:** create saves, delete the MongoDB pod, resume every save (Soham)
-- [ ] **Portability:** save on one computer, resume on another (Kenyang)
 - [ ] **Start time:** 10 starts and 10 resumes, each playable within 10 s (Kenyang)
 - [ ] **Scalability:** during a 20-client load test, the API scales from 1 to 3 replicas with no errors (Khoi)
 - [ ] **RESTful design:** Postman collection passes on every endpoint (Soham)
