@@ -1,0 +1,1711 @@
+{
+  "info": {
+    "name": "Arcade Hub API",
+    "description": "Every endpoint in api/src/app.ts, for the M5 RESTful-design demo check.\n\nSetup: start MongoDB and the API (see CLAUDE.md, Commands), then run\n`node tests/postman/prepare-fixtures.mjs` to write the two tiny synthetic\nupload files the collection sends. Neither is a real game or save, and both\nare gitignored.\n\nRun the whole collection in order; it registers fresh accounts, adds a game,\nplays it, saves, resumes, checks ownership errors, then deletes the game.\nSaves have no delete endpoint, so each run leaves two saves behind under a\nfresh account. Set fixturesDir to an absolute path when running in the\nPostman app; the default is relative to the repo root for Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('reports the API and the database', () => {",
+                  "  const health = pm.response.json()",
+                  "  pm.expect(health.status).to.eql('ok')",
+                  "  pm.expect(health.mongo).to.be.oneOf(['up', 'down'])",
+                  "})"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "Register the player",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{playerUsername}}\",\n  \"password\": \"{{playerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const stamp = Date.now().toString()",
+                  "pm.collectionVariables.set('runStamp', stamp)",
+                  "pm.collectionVariables.set('playerUsername', 'postman_' + stamp)",
+                  "pm.collectionVariables.set('playerPassword', 'postman-password-123')"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns the account and a bearer token', () => {",
+                  "  pm.expect(body.token).to.be.a('string').and.not.empty",
+                  "  pm.expect(body.user.username).to.eql(pm.collectionVariables.get('playerUsername'))",
+                  "  pm.expect(body.user.id).to.be.a('string')",
+                  "  pm.expect(body.user).to.not.have.property('password')",
+                  "  pm.expect(body.user).to.not.have.property('passwordHash')",
+                  "})",
+                  "pm.collectionVariables.set('token', body.token)",
+                  "pm.collectionVariables.set('playerId', body.user.id)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register the rival player",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{rivalUsername}}\",\n  \"password\": \"{{rivalPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('rivalUsername', 'postman_rival_' + pm.collectionVariables.get('runStamp'))",
+                  "pm.collectionVariables.set('rivalPassword', 'postman-password-123')"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns a second account and token', () => {",
+                  "  pm.expect(body.token).to.be.a('string').and.not.empty",
+                  "  pm.expect(body.user.id).to.not.eql(pm.collectionVariables.get('playerId'))",
+                  "})",
+                  "pm.collectionVariables.set('rivalToken', body.token)",
+                  "pm.collectionVariables.set('rivalId', body.user.id)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign in",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{playerUsername}}\",\n  \"password\": \"{{playerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('signs in the same account', () => {",
+                  "  pm.expect(body.user.id).to.eql(pm.collectionVariables.get('playerId'))",
+                  "  pm.expect(body.token).to.be.a('string').and.not.empty",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign in with the wrong password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{playerUsername}}\",\n  \"password\": \"not-the-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Not signed in', () => pm.response.to.have.status(401))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(401)",
+                  "  pm.expect(problem.detail).to.eql(\"That username and password don't match.\")",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register a taken username",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{playerUsername}}\",\n  \"password\": \"{{playerPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(409)",
+                  "  pm.expect(problem.detail).to.eql('That username is taken. Pick another one.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject a bad token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-real-token",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Not signed in', () => pm.response.to.have.status(401))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(401)",
+                  "  pm.expect(problem.detail).to.eql('Please sign in first.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "Add a game",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/games",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Postman Test {{runStamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Added by the Arcade Hub Postman collection.",
+                  "type": "text"
+                },
+                {
+                  "key": "genre",
+                  "value": "Postman Test",
+                  "type": "text"
+                },
+                {
+                  "key": "core",
+                  "value": "nes",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-game.nes"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const game = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns the added game', () => {",
+                  "  pm.expect(game.title).to.eql('Postman Test ' + pm.collectionVariables.get('runStamp'))",
+                  "  pm.expect(game.core).to.eql('nes')",
+                  "  pm.expect(game.genre).to.eql('Postman Test')",
+                  "  pm.expect(game.id).to.be.a('string')",
+                  "  pm.expect(game.createdAt).to.be.a('string')",
+                  "})",
+                  "pm.collectionVariables.set('gameId', game.id)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a game with a duplicate title",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/games",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Postman Test {{runStamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Added by the Arcade Hub Postman collection.",
+                  "type": "text"
+                },
+                {
+                  "key": "genre",
+                  "value": "Postman Test",
+                  "type": "text"
+                },
+                {
+                  "key": "core",
+                  "value": "nes",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-game.nes"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(409)",
+                  "  pm.expect(problem.detail).to.eql('A game with that title already exists.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add a game with the wrong file type",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/games",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Postman Wrong File {{runStamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Added by the Arcade Hub Postman collection.",
+                  "type": "text"
+                },
+                {
+                  "key": "genre",
+                  "value": "Postman Test",
+                  "type": "text"
+                },
+                {
+                  "key": "core",
+                  "value": "nes",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-save-state.bin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad request', () => pm.response.to.have.status(400))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(400)",
+                  "  pm.expect(problem.errors).to.have.property('file')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List the catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const games = pm.response.json()",
+                  "pm.test('200 OK with an array', () => {",
+                  "  pm.response.to.have.status(200)",
+                  "  pm.expect(games).to.be.an('array')",
+                  "})",
+                  "pm.test('includes the added game', () => {",
+                  "  pm.expect(games.map((game) => game.id)).to.include(pm.collectionVariables.get('gameId'))",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search the catalog by title",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games?search={{runStamp}}",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const games = pm.response.json()",
+                  "pm.test('200 OK with one match', () => {",
+                  "  pm.response.to.have.status(200)",
+                  "  pm.expect(games).to.have.length(1)",
+                  "  pm.expect(games[0].id).to.eql(pm.collectionVariables.get('gameId'))",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter the catalog by genre",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games?genre=Postman%20Test",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const games = pm.response.json()",
+                  "pm.test('200 OK with the added game', () => {",
+                  "  pm.response.to.have.status(200)",
+                  "  pm.expect(games.map((game) => game.id)).to.include(pm.collectionVariables.get('gameId'))",
+                  "  pm.expect(games.every((game) => game.genre === 'Postman Test')).to.be.true",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read one game",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/{{gameId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const game = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('returns the game', () => {",
+                  "  pm.expect(game.id).to.eql(pm.collectionVariables.get('gameId'))",
+                  "  pm.expect(game.title).to.eql('Postman Test ' + pm.collectionVariables.get('runStamp'))",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download the game file",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/{{gameId}}/file",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('streams the uploaded bytes', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.eql('application/octet-stream')",
+                  "  pm.expect(pm.response.headers.get('Content-Length')).to.eql(pm.environment.get('gameFileBytes'))",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read an unknown game",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/000000000000000000000000",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not found', () => pm.response.to.have.status(404))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(404)",
+                  "  pm.expect(problem.detail).to.eql('That game does not exist.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Edit the game",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/{{gameId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test {{runStamp}} (edited)\",\n  \"description\": \"Edited by the Arcade Hub Postman collection.\",\n  \"genre\": \"Postman Test\",\n  \"core\": \"nes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const game = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('returns the edited details', () => {",
+                  "  pm.expect(game.id).to.eql(pm.collectionVariables.get('gameId'))",
+                  "  pm.expect(game.title).to.eql('Postman Test ' + pm.collectionVariables.get('runStamp') + ' (edited)')",
+                  "  pm.expect(game.description).to.include('Edited')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rival player",
+      "item": [
+        {
+          "name": "Start the rival player a session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rivalToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"{{gameId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns the session and game file URL', () => {",
+                  "  pm.expect(body.core).to.eql('nes')",
+                  "  pm.expect(body.gameFileUrl).to.eql('/api/games/' + pm.collectionVariables.get('gameId') + '/file')",
+                  "  pm.expect(body.saveFileUrl).to.be.null",
+                  "})",
+                  "pm.collectionVariables.set('rivalSessionId', body.sessionId)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload the rival player's save",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{rivalSessionId}}/saves",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rivalToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "manual",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-save-state.bin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const save = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('stores a save for the rival account', () => {",
+                  "  pm.expect(save.kind).to.eql('manual')",
+                  "  pm.expect(save.userId).to.eql(pm.collectionVariables.get('rivalId'))",
+                  "  pm.expect(save.id).to.be.a('string')",
+                  "})",
+                  "pm.collectionVariables.set('rivalSaveId', save.id)"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Start a session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"{{gameId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns what the player page needs', () => {",
+                  "  pm.expect(body.core).to.eql('nes')",
+                  "  pm.expect(body.gameFileUrl).to.eql('/api/games/' + pm.collectionVariables.get('gameId') + '/file')",
+                  "  pm.expect(body.saveFileUrl).to.be.null",
+                  "  pm.expect(body.sessionId).to.be.a('string')",
+                  "})",
+                  "pm.collectionVariables.set('sessionId', body.sessionId)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read the session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const session = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('is running with no autosave yet', () => {",
+                  "  pm.expect(session.id).to.eql(pm.collectionVariables.get('sessionId'))",
+                  "  pm.expect(session.gameId).to.eql(pm.collectionVariables.get('gameId'))",
+                  "  pm.expect(session.status).to.eql('running')",
+                  "  pm.expect(session.lastAutosaveId).to.be.null",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send a heartbeat",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/heartbeat"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pause the session",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paused\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const session = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('is paused', () => pm.expect(session.status).to.eql('paused'))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pause it again",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paused\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const session = pm.response.json()",
+                  "pm.test('200 OK, unchanged', () => {",
+                  "  pm.response.to.have.status(200)",
+                  "  pm.expect(session.status).to.eql('paused')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resume the session",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"running\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const session = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('is running again', () => pm.expect(session.status).to.eql('running'))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read someone else's session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{rivalSessionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(403)",
+                  "  pm.expect(problem.detail).to.eql('That session is not yours.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start a session for an unknown game",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"000000000000000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not found', () => pm.response.to.have.status(404))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(404)",
+                  "  pm.expect(problem.detail).to.eql('That game does not exist.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start a session from an unknown save",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"saveId\": \"000000000000000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not found', () => pm.response.to.have.status(404))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(404)",
+                  "  pm.expect(problem.detail).to.eql('That save does not exist.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start from another player's save",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"saveId\": \"{{rivalSaveId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(403)",
+                  "  pm.expect(problem.detail).to.eql('That save is not yours.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Saves",
+      "item": [
+        {
+          "name": "Upload a manual save",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/saves",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "manual",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-save-state.bin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const save = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns the save, without a label yet', () => {",
+                  "  pm.expect(save.kind).to.eql('manual')",
+                  "  pm.expect(save.userId).to.eql(pm.collectionVariables.get('playerId'))",
+                  "  pm.expect(save.gameId).to.eql(pm.collectionVariables.get('gameId'))",
+                  "  pm.expect(save).to.not.have.property('label')",
+                  "})",
+                  "pm.collectionVariables.set('manualSaveId', save.id)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload a save with no state",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/saves",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "manual",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad request', () => pm.response.to.have.status(400))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(400)",
+                  "  pm.expect(problem.errors).to.have.property('state')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload to someone else's session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{rivalSessionId}}/saves",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "manual",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-save-state.bin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(403)",
+                  "  pm.expect(problem.detail).to.eql('That session is not yours.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload an autosave",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/saves",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "autosave",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-save-state.bin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const save = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('returns an autosave', () => pm.expect(save.kind).to.eql('autosave'))",
+                  "pm.collectionVariables.set('autosaveSaveId', save.id)"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read the session after the autosave",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const session = pm.response.json()",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('remembers the newest autosave', () => {",
+                  "  pm.expect(session.lastAutosaveId).to.eql(pm.collectionVariables.get('autosaveSaveId'))",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List the player's saves",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const saves = pm.response.json()",
+                  "pm.test('200 OK with the two saves, newest first', () => {",
+                  "  pm.response.to.have.status(200)",
+                  "  pm.expect(saves.map((save) => save.id)).to.eql([",
+                  "    pm.collectionVariables.get('autosaveSaveId'),",
+                  "    pm.collectionVariables.get('manualSaveId'),",
+                  "  ])",
+                  "})",
+                  "pm.test(\"returns only this player's saves\", () => {",
+                  "  pm.expect(saves.every((save) => save.userId === pm.collectionVariables.get('playerId'))).to.be.true",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List the saves for one game",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves?gameId={{gameId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const saves = pm.response.json()",
+                  "pm.test('200 OK with the same two saves', () => {",
+                  "  pm.response.to.have.status(200)",
+                  "  pm.expect(saves.map((save) => save.id).sort()).to.eql([",
+                  "    pm.collectionVariables.get('autosaveSaveId'),",
+                  "    pm.collectionVariables.get('manualSaveId'),",
+                  "  ].sort())",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List saves with an invalid gameId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves?gameId=not-an-id"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Bad request', () => pm.response.to.have.status(400))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(400)",
+                  "  pm.expect(problem.errors).to.have.property('gameId')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download a save",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves/{{manualSaveId}}/file"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200))",
+                  "pm.test('streams the state back byte for byte', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.eql('application/octet-stream')",
+                  "  pm.expect(pm.response.headers.get('Content-Length')).to.eql(pm.environment.get('saveStateBytes'))",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download someone else's save",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves/{{rivalSaveId}}/file"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(403)",
+                  "  pm.expect(problem.detail).to.eql('That save is not yours.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download an unknown save",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/saves/000000000000000000000000/file"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not found', () => pm.response.to.have.status(404))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(404)",
+                  "  pm.expect(problem.detail).to.eql('That save does not exist.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resume from a save",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"saveId\": \"{{manualSaveId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json()",
+                  "pm.test('201 Created', () => pm.response.to.have.status(201))",
+                  "pm.test('points at the save file to resume', () => {",
+                  "  pm.expect(body.core).to.eql('nes')",
+                  "  pm.expect(body.saveFileUrl).to.eql('/api/saves/' + pm.collectionVariables.get('manualSaveId') + '/file')",
+                  "  pm.expect(body.sessionId).to.be.a('string')",
+                  "})",
+                  "pm.collectionVariables.set('resumedSessionId', body.sessionId)"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "End the resumed session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{resumedSessionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End the session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End the session again",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content, safe to repeat', () => pm.response.to.have.status(204))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Heartbeat an ended session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/heartbeat"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(409)",
+                  "  pm.expect(problem.detail).to.include('has ended')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save to an ended session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}/saves",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "autosave",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "type": "file",
+                  "src": "{{fixturesDir}}/test-save-state.bin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(409)",
+                  "  pm.expect(problem.detail).to.include('has ended')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pause an ended session",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{sessionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paused\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 Conflict', () => pm.response.to.have.status(409))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(409)",
+                  "  pm.expect(problem.detail).to.include('has ended')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "End the rival player's session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/sessions/{{rivalSessionId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{rivalToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete the game",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/{{gameId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204))"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read the deleted game",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/{{gameId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not found', () => pm.response.to.have.status(404))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(404)",
+                  "  pm.expect(problem.detail).to.eql('That game does not exist.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete the game again",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/games/{{gameId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not found', () => pm.response.to.have.status(404))",
+                  "pm.test('answers with ProblemDetails', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json')",
+                  "  const problem = pm.response.json()",
+                  "  pm.expect(problem.status).to.eql(404)",
+                  "  pm.expect(problem.detail).to.eql('That game does not exist.')",
+                  "})"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

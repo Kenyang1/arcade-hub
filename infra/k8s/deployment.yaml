@@ -38,13 +38,12 @@ spec:
             # token as the stand-in account, which is what the Nov 15 check runs
             # on (see docs/spec.md). Remove both once accounts exist.
             - name: ALLOW_STAND_IN_USER
-              value: "true"
+              value: "false"
             - name: JWT_SIGNING_KEY
               valueFrom:
                 secretKeyRef:
                   name: arcade-secrets
                   key: JWT_SIGNING_KEY
-                  optional: true
 
           resources:
             requests:

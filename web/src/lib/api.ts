@@ -216,11 +216,21 @@ export async function endSession(sessionId: string): Promise<void> {
 
 /**
  * POST /api/sessions/{id}/saves. Uploads a save state, manual or autosave, as
- * multipart form data: a `kind` field and the state as a file field named `state`.
+ * multipart form data: a `kind` field, the state as a file field named `state`,
+ * and, on a manual save, optionally the game screen as `frame` for the AI label.
  */
-export async function uploadSave(sessionId: string, kind: SaveKind, state: Uint8Array): Promise<Save> {
+export async function uploadSave(
+  sessionId: string,
+  kind: SaveKind,
+  state: Uint8Array,
+  frame?: Blob,
+): Promise<Save> {
   if (state.byteLength === 0) throw new ApiError(400, 'The save state is empty.')
-  return request<Save>('POST', `/sessions/${encodeURIComponent(sessionId)}/saves`, saveForm(kind, state))
+  return request<Save>(
+    'POST',
+    `/sessions/${encodeURIComponent(sessionId)}/saves`,
+    saveForm(kind, state, frame),
+  )
 }
 
 /**
@@ -246,10 +256,13 @@ export function uploadSaveOnExit(sessionId: string, state: Uint8Array): boolean 
   return true
 }
 
-function saveForm(kind: SaveKind, state: Uint8Array): FormData {
+function saveForm(kind: SaveKind, state: Uint8Array, frame?: Blob): FormData {
   const form = new FormData()
   form.set('kind', kind)
   form.set('state', new Blob([new Uint8Array(state)], { type: 'application/octet-stream' }), 'state.bin')
+  // The API's field name is SAVE_FRAME_FIELD. Its constant lives in contracts,
+  // which the web doesn't import, so zod stays out of the browser bundle.
+  if (frame) form.set('frame', frame, 'frame.png')
   return form
 }
 
