@@ -5,20 +5,34 @@ metadata:
   name: idle-sweep
   namespace: arcade
 spec:
-  suspend: true # Will be removed once the jobs CLI exits.
-  schedule: "*/5 * * * *"
+  schedule: "*/5 * * * *"    # Run every 5 minutes.
+  timeZone: "America/New_York"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
   concurrencyPolicy: Forbid
+  
   jobTemplate:
     spec:
       template:
         spec:
           containers:
             - name: idle-sweep
-              image: busybox:latest
+              image: arcade-api:dev
+              imagePullPolicy: IfNotPresent
+
               command:
-                - /bin/sh
-                - -c
-                - echo "Not implemented yet."
+                - node
+                - /arcade-hub/api/dist/jobs/cli.js
+                - idle-sweep
+
+              env:
+                - name: MONGO_URL
+                  value: "mongodb://mongo:27017"
+                - name: MONGO_DB
+                  value: "arcadehub"
+
               resources:
                 requests:
                   memory: "128Mi"
@@ -35,20 +49,34 @@ metadata:
   name: prune-autosaves
   namespace: arcade
 spec:
-  suspend: true # Will be removed once the jobs CLI exits.
-  schedule: "0 0 * * 0"
+  schedule: "0 0 * * 0"      # Run at 12:00 AM (midnight) every Sunday
+  timeZone: "America/New_York"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
   concurrencyPolicy: Forbid
+
   jobTemplate:
     spec:
       template:
         spec:
           containers:
             - name: prune-autosaves
-              image: busybox:latest
+              image: arcade-api:dev
+              imagePullPolicy: IfNotPresent
+
               command:
-                - /bin/sh
-                - -c
-                - echo "Not implemented yet."
+                - node
+                - /arcade-hub/api/dist/jobs/cli.js
+                - prune-autosaves
+
+              env:
+                - name: MONGO_URL
+                  value: "mongodb://mongo:27017"
+                - name: MONGO_DB
+                  value: "arcadehub"
+                
               resources:
                 requests:
                   memory: "128Mi"
@@ -66,7 +94,13 @@ metadata:
   namespace: arcade
 spec:
   suspend: true # This cronjob must be executed manually
+
   schedule: "0 0 1 1 *"
+  timeZone: "America/New_York"
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -74,7 +108,7 @@ spec:
         spec:
           containers:
             - name: import-games
-              image: busybox:latest
+              image: arcade-api:dev
               command:
                 - /bin/sh
                 - -c
