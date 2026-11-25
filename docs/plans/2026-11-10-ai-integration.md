@@ -92,10 +92,10 @@ captured during a session the caller owns.
   (`packages/contracts/src/index.ts`, `api/src/routes/sessions.ts`,
   `api/src/core/saves.ts`, `api/src/openapi.ts`, `api/test/save-labels.test.ts`)
   Done on `feat/save-labels-api`, on top of the label contract (PR 22).
-- [ ] **Save labels, web (M4).** On a manual save, the Play page captures a
+- [x] **Save labels, web (M4).** On a manual save, the Play page captures a
   frame and `uploadSave` sends it. **`api.ts` signature change** (`uploadSave`
-  takes the frame). (`web/src/lib/api.ts`, `web/src/pages/PlayPage.tsx`) Waits
-  for PR 16 (`uploadSave` real call), which changes both files.
+  takes the frame). (`web/src/lib/api.ts`, `web/src/pages/PlayPage.tsx`) Done on
+  `fix/save-ai-label`: a failed capture still saves, without a label.
 - [ ] **Kubernetes Secret (M4), Khoi.** Add `GEMINI_API_KEY` to
   `arcade-secrets` and pass it to the API Deployment. The value never goes in git.
   (`infra/k8s/deployment.yaml`)
@@ -131,6 +131,7 @@ captured during a session the caller owns.
 | The API labels any save sent with a frame; the web sends frames only for manual saves (Nov 15) | Autosaves come every 60 s, and the free tier's daily quota would run out within a few hours of play. Keeping the policy in the web leaves the API simple | Labelling every autosave; a per-session rate limit in the API |
 | The frame is a separate multipart part, never stored (Nov 15) | It is only needed for the one AI call, and keeping game screens would need its own retention rule | Keeping frames in GridFS next to the state |
 | A rate-limit or quota error is treated like any other AI failure | The free tier has per-minute and per-day limits; the save still works and shows its time | Retrying until the call succeeds |
+| A manual save whose frame capture fails still uploads, without a label (Nov 23) | The save is the core feature and the label is an extra, so a failed capture must not fail the save | Failing the save, or retrying the capture |
 
 ## Out of scope
 - AI recommendations and natural-language search, until the catalog has
