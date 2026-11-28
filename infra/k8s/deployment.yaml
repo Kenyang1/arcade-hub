@@ -6,7 +6,9 @@ metadata:
   namespace: arcade
 
 spec:
-  replicas: 1
+  # Two API pods, so deleting one mid-game leaves the other to take the
+  # autosaves (M4 check). The Service sends traffic only to ready pods.
+  replicas: 2
 
   selector:
     matchLabels:
@@ -44,6 +46,13 @@ spec:
                 secretKeyRef:
                   name: arcade-secrets
                   key: JWT_SIGNING_KEY
+
+          # /api/health answers 200 once the server listens (it reports MongoDB
+          # separately), so a pod that's starting or stopping gets no requests.
+          readinessProbe:
+            httpGet: { path: /api/health, port: 5080 }
+            periodSeconds: 5
+            timeoutSeconds: 2
 
           resources:
             requests:
